@@ -1,269 +1,241 @@
 // assets/app.js
-"use strict";
+// ===== core storage =====
+const DATA_KEY = "oshi_savings_v1";
+const UI_KEY = "oshi_ui_v1";
+const CONFIG_KEY = "oshi_config_v1";
 
-/** ===== Storage ===== */
-const DATA_KEY = "oshi_site_data_v2";
-const UI_KEY   = "oshi_site_ui_v3";
-const REPO_KEY = "oshi_site_repo_v1";
-const LISTS_KEY = "oshi_site_lists_cache_v1";
+// ===== defaults =====
+export const DEFAULT_CATS = ["Shokichi", "Akira", "團體"];
 
-/** ===== Categories / rules ===== */
-export const CATS = ["Shokichi（個人）","Akira（個人）","EXILE THE SECOND（團體）"];
-
-export const DEFAULT_RULES = {
-  "IG/X 更新（純文字）": 0,
-  "IG/X 更新（有照片）": 0,
-  "Blog 更新": 0,
-  "影片更新（官方/他人）": 0,
-  "影片更新（本人/自拍）": 0,
-  "生放送/直播/現場資訊": 0,
-  "節目出演/宣番": 0,
-  "雜誌/網路專訪": 0,
-  "忍住不買（成功）": 0,
-  "衝動想買（先存錢冷靜）": 0,
+// 顏色：你之前指定的三色（可在設定頁改）
+const DEFAULT_THEME_MAP = {
+  "Shokichi": { bg: "rgba(226, 88, 34, .14)", fg: "#c2410c", border: "rgba(226, 88, 34, .35)", tape: "rgba(226, 88, 34, .35)" },
+  "Akira":    { bg: "rgba(32, 32, 32, .08)", fg: "#1f1f1f", border: "rgba(180,150,90,.55)", tape: "rgba(40,40,40,.30)" },
+  "團體":     { bg: "rgba(34, 139, 34, .14)", fg: "#166534", border: "rgba(34, 139, 34, .35)", tape: "rgba(34, 139, 34, .32)" },
 };
 
-export const BGM_DEFAULT_MODE = "first"; // "first" or "random"
+// 你提供給同擔的「固定初始背景」：放 repo 裡
+const DEFAULT_BG_URL = "assets/backgrounds/default.jpg";
 
-/** ===== Helpers ===== */
-export function pad(n){ return String(n).padStart(2,"0"); }
-export function ymd(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
-export function ymLabel(y,m){ return `${y} 年 ${m+1} 月`; }
+// ===== utils =====
+export const pad = (n) => String(n).padStart(2, "0");
 
-/** ===== Data (records) ===== */
-export function loadData(){
+export function ymd(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+export function ymLabel(y, m0) {
+  return `${y}-${pad(m0 + 1)}`;
+}
+
+export function loadData() {
   const raw = localStorage.getItem(DATA_KEY);
-  const fresh = { rules: {...DEFAULT_RULES}, records: {} };
-  if(!raw) return fresh;
-  try{
-    const data = JSON.parse(raw);
-    if(!data.rules || !data.records) return fresh;
-
-    for(const k of Object.keys(DEFAULT_RULES)){
-      if(!(k in data.rules)) data.rules[k] = DEFAULT_RULES[k];
-    }
-    for(const arr of Object.values(data.records)){
-      if(!Array.isArray(arr)) continue;
-      for(const r of arr){
-        if(typeof r.rewardImg !== "string") r.rewardImg = "";
-      }
-    }
-    return data;
-  }catch{
-    return fresh;
+  if (!raw) return { rules: {}, records: {} };
+  try {
+    const x = JSON.parse(raw);
+    return x && x.records ? x : { rules: {}, records: {} };
+  } catch {
+    return { rules: {}, records: {} };
   }
 }
-export function saveData(data){
-  localStorage.setItem(DATA_KEY, JSON.stringify(data));
+export function saveData(x) {
+  localStorage.setItem(DATA_KEY, JSON.stringify(x));
 }
 
-export function filterRecordsByCat(recordsArr, filterCat){
-  if(!filterCat) return recordsArr;
-  return recordsArr.filter(r => r.cat === filterCat);
+// ===== config (site-wide settings) =====
+export function getConfig() {
+  const raw = localStorage.getItem(CONFIG_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+export function saveConfig(cfg) {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
+}
+export function isConfigured() {
+  const cfg = getConfig();
+  return !!(cfg && cfg.setupDone);
 }
 
-export function daySum(data, dateKey, filterCat=""){
-  const arr = data.records[dateKey] || [];
-  const filtered = filterRecordsByCat(arr, filterCat);
-  return filtered.reduce((s,x)=>s + (Number(x.amount)||0), 0);
+export function getSiteTitle() {
+  const cfg = getConfig();
+  // 例：小美的LDH追星存錢手帳
+  if (cfg?.siteTitle && String(cfg.siteTitle).trim()) return String(cfg.siteTitle).trim();
+  if (cfg?.ownerName && String(cfg.ownerName).trim()) return `${String(cfg.ownerName).trim()}的LDH追星存錢手帳`;
+  return "LDH追星存錢手帳";
 }
-export function monthSum(data, y, m, filterCat=""){
-  const prefix = `${y}-${pad(m+1)}-`;
+
+export function getCats() {
+  const cfg = getConfig();
+  const cats = cfg?.cats;
+  if (Array.isArray(cats) && cats.filter(Boolean).length) return cats.map(String);
+  return DEFAULT_CATS.slice();
+}
+
+export function getThemeMap() {
+  const cfg = getConfig();
+  const m = (cfg && cfg.themeMap && typeof cfg.themeMap === "object") ? cfg.themeMap : {};
+  // merge defaults + custom
+  return { ...DEFAULT_THEME_MAP, ...m };
+}
+
+export function getCatTheme(catName) {
+  const map = getThemeMap();
+  return map[catName] || { bg: "rgba(150,150,150,.10)", fg: "#111", border: "rgba(150,150,150,.25)", tape: "rgba(150,150,150,.25)" };
+}
+
+// 給 tag 用：inline style（不用再寫死 class）
+export function tagStyleAttr(catName) {
+  const t = getCatTheme(catName);
+  return `style="background:${t.bg};color:${t.fg};border-color:${t.border};"`;
+}
+
+// 給事件卡片右上角膠帶用（用 CSS 變數控制）
+export function tapeVarsAttr(catName) {
+  const t = getCatTheme(catName);
+  return `style="--tape:${t.tape};--tapeborder:${t.border};"`;
+}
+
+// ===== UI (background/music) =====
+export function getUI() {
+  const raw = localStorage.getItem(UI_KEY);
+  if (!raw) return {
+    bgOpacity: 0.25,
+    musicVolume: 0.6,
+    musicOn: false,
+    bgIndexHome: 0,
+    bgIndexPlanner: 0,
+  };
+  try {
+    const x = JSON.parse(raw);
+    return x && typeof x === "object" ? x : {
+      bgOpacity: 0.25,
+      musicVolume: 0.6,
+      musicOn: false,
+      bgIndexHome: 0,
+      bgIndexPlanner: 0,
+    };
+  } catch {
+    return {
+      bgOpacity: 0.25,
+      musicVolume: 0.6,
+      musicOn: false,
+      bgIndexHome: 0,
+      bgIndexPlanner: 0,
+    };
+  }
+}
+export function saveUI(ui) {
+  localStorage.setItem(UI_KEY, JSON.stringify(ui));
+}
+
+// 內建背景清單：你可以放多張到 assets/backgrounds/，這裡先給基本
+export function getBuiltInBackgrounds() {
+  // 你可以自行加：bg2.jpg / bg3.jpg...
+  return [
+    DEFAULT_BG_URL,
+    "assets/backgrounds/bg2.jpg",
+    "assets/backgrounds/bg3.jpg",
+  ];
+}
+
+// 背景來源：優先用 config 的 initialBg（第一次設定選的）
+export function getActiveBackgroundUrl(scope = "planner") {
+  const cfg = getConfig();
+  const ui = getUI();
+  const list = getBuiltInBackgrounds().filter(Boolean);
+
+  const idx = (scope === "home") ? (ui.bgIndexHome ?? 0) : (ui.bgIndexPlanner ?? 0);
+  const picked = list.length ? list[((idx % list.length) + list.length) % list.length] : DEFAULT_BG_URL;
+
+  // 如果使用者設定了「初始背景」或後來在設定頁換了背景，也可以覆蓋
+  const custom = cfg?.backgroundUrl;
+  return custom || picked || DEFAULT_BG_URL;
+}
+
+export async function applyBackground(scope = "planner") {
+  const ui = getUI();
+  const bgUrl = getActiveBackgroundUrl(scope);
+
+  const wrap = document.querySelector(".bg-wrap");
+  if (!wrap) return;
+
+  wrap.style.opacity = String(ui.bgOpacity ?? 0.25);
+  wrap.style.backgroundImage = `url("${bgUrl}")`;
+  wrap.style.backgroundSize = "cover";
+  wrap.style.backgroundPosition = "center";
+  wrap.style.backgroundAttachment = "fixed";
+}
+
+// ===== music =====
+export async function setupBGM(audioEl) {
+  const cfg = getConfig();
+  const ui = getUI();
+  if (!audioEl) return;
+
+  // 允許使用者在設定頁上傳一首音樂（存 dataURL）
+  const src = cfg?.musicDataUrl || "";
+  if (src) audioEl.src = src;
+
+  audioEl.volume = Number(ui.musicVolume ?? 0.6);
+}
+
+// ===== stats =====
+export function monthSum(data, y, m0, catFilter = "") {
+  const prefix = `${y}-${pad(m0 + 1)}-`;
   let s = 0;
-  for(const k of Object.keys(data.records)){
-    if(k.startsWith(prefix)) s += daySum(data, k, filterCat);
+  for (const k of Object.keys(data.records || {})) {
+    if (!k.startsWith(prefix)) continue;
+    const arr = data.records[k] || [];
+    for (const r of arr) {
+      if (catFilter && (r.cat || "") !== catFilter) continue;
+      s += Number(r.amount) || 0;
+    }
   }
   return s;
 }
 
-/** ✅ 同一天貼紙：選「當天最大金額那筆」的 rewardImg */
-export function daySticker(data, dateKey, filterCat=""){
-  const arr = data.records[dateKey] || [];
-  if(arr.length === 0) return "";
-  const pool = filterRecordsByCat(arr, filterCat);
-  const use = pool.length ? pool : arr;
-
-  let best = null;
-  for(const r of use){
-    if(!r.rewardImg) continue;
-    const amt = Number(r.amount)||0;
-    if(!best || amt > (Number(best.amount)||0)) best = r;
-  }
-  if(!best){
-    best = use.find(r => r.rewardImg) || null;
-  }
-  return best?.rewardImg || "";
-}
-
-export function sumByEvent(data, filterCat=""){
-  const map = new Map();
-  for(const arr of Object.values(data.records)){
-    for(const r of filterRecordsByCat(arr, filterCat)){
-      map.set(r.event, (map.get(r.event)||0) + (Number(r.amount)||0));
-    }
-  }
-  return map;
-}
-export function sumByDateForEvent(data, eventName, filterCat=""){
-  const map = new Map();
-  for(const [date, arr] of Object.entries(data.records)){
-    let s = 0;
-    for(const r of filterRecordsByCat(arr, filterCat)){
-      if(r.event === eventName) s += (Number(r.amount)||0);
-    }
-    if(s>0) map.set(date, s);
-  }
-  return [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-}
-
-export function computeStreak(data, todayKey, filterCat=""){
+export function computeStreak(data, todayKey, catFilter = "") {
+  // streak = 往回連續有紀錄的天數
   let streak = 0;
-  const [Y,M,D] = todayKey.split("-").map(Number);
-  let cur = new Date(Y, M-1, D);
-  while(true){
-    const key = ymd(cur);
-    const sum = daySum(data, key, filterCat);
-    if(sum > 0){
-      streak += 1;
-      cur.setDate(cur.getDate() - 1);
-    }else break;
+  let d = new Date(todayKey);
+  while (true) {
+    const key = ymd(d);
+    const arr = (data.records && data.records[key]) ? data.records[key] : [];
+    const ok = arr.some(r => !catFilter || (r.cat || "") === catFilter);
+    if (!ok) break;
+    streak += 1;
+    d.setDate(d.getDate() - 1);
   }
   return streak;
 }
 
-/** ===== UI (background/music) ===== */
-export function getUI(){
-  const def = { bgOpacity: 0.55, musicOn: false, musicMode: BGM_DEFAULT_MODE, bgIndexHome: 0, bgIndexPlanner: 0 };
-  const raw = localStorage.getItem(UI_KEY);
-  if(!raw) return def;
-  try{ return { ...def, ...JSON.parse(raw) }; }catch{ return def; }
-}
-export function saveUI(ui){ localStorage.setItem(UI_KEY, JSON.stringify(ui)); }
+// ===== reward image picker =====
+// 你原本做法：讓使用者每次新增紀錄時從素材庫挑一張鼓勵圖（通常在 settings.html 管理）
+// 這裡保留一個簡單版本：從 localStorage 的 reward pool 隨機挑
+const REWARD_POOL_KEY = "oshi_reward_pool_v1";
 
-/** ===== Repo config (set once in settings.html) ===== */
-export function setRepoConfig({owner, repo, branch="main"}){
-  localStorage.setItem(REPO_KEY, JSON.stringify({owner, repo, branch}));
+export function loadRewardPool() {
+  try { return JSON.parse(localStorage.getItem(REWARD_POOL_KEY) || "[]") || []; }
+  catch { return []; }
 }
-export function getRepoConfig(){
-  const raw = localStorage.getItem(REPO_KEY);
-  if(!raw) return {owner:"", repo:"", branch:"main"};
-  try{
-    const x = JSON.parse(raw);
-    return { owner: x.owner||"", repo: x.repo||"", branch: x.branch||"main" };
-  }catch{
-    return {owner:"", repo:"", branch:"main"};
+export function saveRewardPool(arr) {
+  localStorage.setItem(REWARD_POOL_KEY, JSON.stringify(arr || []));
+}
+
+export async function pickRewardImage() {
+  const pool = loadRewardPool();
+  if (!pool.length) return "";
+  // 先用隨機；你也可以改成彈出選擇
+  const i = Math.floor(Math.random() * pool.length);
+  return pool[i] || "";
+}
+
+// ===== first-run guard =====
+export function guardSetup() {
+  // 只有在 setup.html 不做導頁
+  const path = location.pathname.toLowerCase();
+  if (path.endsWith("/setup.html") || path.endsWith("setup.html")) return;
+
+  if (!isConfigured()) {
+    location.href = "setup.html";
   }
-}
-
-/** ===== GitHub API: list directory contents =====
- * Requires repo to be public (unauth rate limit ~60 req/hr)
- */
-async function ghList(path){
-  const {owner, repo, branch} = getRepoConfig();
-  if(!owner || !repo) return [];
-  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`;
-  const res = await fetch(url, { headers: { "Accept": "application/vnd.github+json" } });
-  if(!res.ok) throw new Error(`GitHub API error ${res.status}`);
-  const json = await res.json();
-  if(!Array.isArray(json)) return [];
-  return json.filter(x => x.type === "file").map(x => x.path);
-}
-
-function toRawUrl(path){
-  const {owner, repo, branch} = getRepoConfig();
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
-}
-
-function isImage(name){
-  return /\.(png|jpg|jpeg|webp|gif)$/i.test(name);
-}
-function isAudio(name){
-  return /\.(mp3|wav|m4a|ogg)$/i.test(name);
-}
-
-function loadListsCache(){
-  const raw = localStorage.getItem(LISTS_KEY);
-  if(!raw) return { ts: 0, reward:[], home:[], planner:[], music:[] };
-  try{
-    const x = JSON.parse(raw);
-    return { ts: x.ts||0, reward:x.reward||[], home:x.home||[], planner:x.planner||[], music:x.music||[] };
-  }catch{
-    return { ts: 0, reward:[], home:[], planner:[], music:[] };
-  }
-}
-function saveListsCache(obj){
-  localStorage.setItem(LISTS_KEY, JSON.stringify(obj));
-}
-
-/** call this from settings.html */
-export async function refreshRemoteAssetLists(){
-  const now = Date.now();
-
-  const rewardPaths  = await ghList("assets/images/reward");
-  const homePaths    = await ghList("assets/images/home");
-  const plannerPaths = await ghList("assets/images/planner");
-  const musicPaths   = await ghList("assets/music");
-
-  const reward = rewardPaths.filter(p=>isImage(p)).map(toRawUrl);
-  const home = homePaths.filter(p=>isImage(p)).map(toRawUrl);
-  const planner = plannerPaths.filter(p=>isImage(p)).map(toRawUrl);
-  const music = musicPaths.filter(p=>isAudio(p)).map(toRawUrl);
-
-  saveListsCache({ ts: now, reward, home, planner, music });
-}
-
-/** Get lists (use cache; auto-refresh if older than 6 hours) */
-export async function getAssetLists(){
-  const cache = loadListsCache();
-  const age = Date.now() - (cache.ts||0);
-  if((cache.ts||0) === 0 || age > 6*60*60*1000){
-    try{
-      await refreshRemoteAssetLists();
-      return loadListsCache();
-    }catch{
-      return cache;
-    }
-  }
-  return cache;
-}
-
-/** Pick reward image from remote list */
-export async function pickRewardImage(){
-  const lists = await getAssetLists();
-  if(!lists.reward.length) return "";
-  return lists.reward[Math.floor(Math.random()*lists.reward.length)];
-}
-
-/** Background apply */
-export async function applyBackground(pageType /* "home" | "planner" */){
-  const ui = getUI();
-  const lists = await getAssetLists();
-
-  const homeList = lists.home.length ? lists.home : [];
-  const plannerList = lists.planner.length ? lists.planner : [];
-
-  const url = (pageType === "home")
-    ? (homeList[ui.bgIndexHome % Math.max(1, homeList.length)] || "")
-    : (plannerList[ui.bgIndexPlanner % Math.max(1, plannerList.length)] || "");
-
-  document.documentElement.style.setProperty("--bg-image", url ? `url("${url}")` : "none");
-  document.documentElement.style.setProperty("--bg-opacity", String(ui.bgOpacity ?? 0.55));
-}
-
-/** Music setup: choose from remote list */
-export async function setupBGM(audioEl){
-  if(!audioEl) return;
-  const ui = getUI();
-  const lists = await getAssetLists();
-  if(!lists.music.length){
-    audioEl.style.display = "none";
-    return;
-  }
-  let src = lists.music[0];
-  if(ui.musicMode === "random"){
-    src = lists.music[Math.floor(Math.random()*lists.music.length)];
-  }
-  audioEl.src = src;
-  audioEl.loop = true;
-  audioEl.preload = "metadata";
 }
