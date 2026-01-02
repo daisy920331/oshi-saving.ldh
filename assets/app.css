@@ -157,3 +157,78 @@ main{
   background:#faf9f6;
   font-size:12px;
 }
+/* =========================
+   手帳風：紙張陰影 + 貼紙膠帶角
+   ========================= */
+
+/* 讓大入口看起來像一張紙 */
+.home-actions .btn.primary{
+  position: relative;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfaf7 100%);
+  border: 1px solid var(--line);
+  box-shadow:
+    0 12px 26px rgba(0,0,0,.08),
+    0 2px 0 rgba(0,0,0,.03);
+  overflow: hidden;
+}
+
+/* 紙張細微顆粒感（很淡，不會吵） */
+.home-actions .btn.primary::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity:.12;
+  pointer-events:none;
+}
+
+/* 貼紙膠帶：左上角 */
+.home-actions .btn.primary::after{
+  content:"";
+  position:absolute;
+  top:-10px;
+  left:14px;
+  width:78px;
+  height:28px;
+  transform: rotate(-6deg);
+  background: rgba(157,183,198,.38);         /* 淡藍膠帶 */
+  border: 1px solid rgba(157,183,198,.35);
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.12);
+  border-radius: 8px;
+  opacity:.95;
+  pointer-events:none;
+}
+
+/* 膠帶邊緣的纖維/撕裂感（超淡） */
+.home-actions .btn.primary::after{
+  -webkit-mask-image: linear-gradient(90deg,
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,1) 10%,
+    rgba(0,0,0,1) 90%,
+    rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(90deg,
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,1) 10%,
+    rgba(0,0,0,1) 90%,
+    rgba(0,0,0,0) 100%);
+}
+
+/* hover：像翻頁一點點 */
+.home-actions .btn.primary:hover{
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 34px rgba(0,0,0,.10),
+    0 2px 0 rgba(0,0,0,.03);
+}
+
+/* 按下去：紙張被按壓 */
+.home-actions .btn.primary:active{
+  transform: translateY(0px);
+  box-shadow:
+    0 10px 22px rgba(0,0,0,.08),
+    0 2px 0 rgba(0,0,0,.03);
+}
+
