@@ -3,8 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>追星存錢</title>
+  <title>追星存錢手帳</title>
   <link rel="stylesheet" href="assets/app.css" />
+  <style>
+    /* 三大入口：手機自動變 1 欄，電腦 3 欄 */
+    .home-actions{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:18px;
+      width:100%;
+      max-width:860px;
+    }
+    @media (min-width:820px){
+      .home-actions{ grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .home-actions .btn.primary{
+      height:150px;
+      padding:24px;
+    }
+    .home-actions .icon{font-size:40px;}
+    .home-actions .desc{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:6px;
+      font-weight:500;
+      letter-spacing:0;
+    }
+  </style>
 </head>
 <body>
   <div class="bg-wrap"></div>
@@ -19,24 +44,33 @@
 <main class="home-main">
   <!-- KPI -->
   <div class="row">
-    <span class="pill">本月合計：<b id="monthTotal">0</b></span>
+    <span class="pill">本月存入：<b id="monthSave">0</b></span>
+    <span class="pill">本月花費：<b id="monthSpend">0</b></span>
     <span class="pill">連續打卡：<b id="streak">0</b> 天</span>
   </div>
 
-  <!-- 兩個大入口 -->
+  <!-- 三個大入口 -->
   <div class="home-actions">
     <a class="btn primary" href="calendar.html">
       <div class="icon">📅</div>
       <div>月曆存錢</div>
+      <div class="desc">點日期記錄存入，貼紙＝當天最大金額</div>
     </a>
 
     <a class="btn primary" href="events.html">
       <div class="icon">📊</div>
       <div>事件統整</div>
+      <div class="desc">按分類切換，點事件看每日與明細</div>
+    </a>
+
+    <a class="btn primary" href="expense.html">
+      <div class="icon">🧾</div>
+      <div>花費日曆</div>
+      <div class="desc">點日期記錄支出，本月合計一眼看懂</div>
     </a>
   </div>
 
-  <!-- 最下面：外觀與音樂 -->
+  <!-- 最下面：外觀與音樂（小小的） -->
   <div class="home-footer">
     <div class="row">
       <button class="btn" id="bgPrev">背景 ◀</button>
@@ -55,21 +89,51 @@
 <script type="module">
   import {
     getUI, saveUI, applyBackground, setupBGM,
-    loadData, monthSum, computeStreak, ymd
+    loadData, monthSum, computeStreak, ymd, pad
   } from "./assets/app.js";
+
+  // 花費資料 key（跟 expense.html 一致）
+  const EXP_KEY = "oshi_expenses_v1";
+  function loadExpenses(){
+    const raw = localStorage.getItem(EXP_KEY);
+    if(!raw) return { records:{} };
+    try{
+      const x = JSON.parse(raw);
+      return x && x.records ? x : { records:{} };
+    }catch{
+      return { records:{} };
+    }
+  }
+  function expenseMonthSum(exp, y, m){
+    const prefix = `${y}-${pad(m+1)}-`;
+    let s = 0;
+    for(const k of Object.keys(exp.records)){
+      if(!k.startsWith(prefix)) continue;
+      const arr = exp.records[k] || [];
+      s += arr.reduce((t,r)=>t + (Number(r.amount)||0), 0);
+    }
+    return s;
+  }
 
   const bgOpacity = document.getElementById("bgOpacity");
   const musicToggle = document.getElementById("musicToggle");
   const audio = document.getElementById("bgm");
 
   function syncKPI(){
-    const data = loadData();
     const now = new Date();
     const todayKey = ymd(now);
-    document.getElementById("monthTotal").textContent =
-      monthSum(data, now.getFullYear(), now.getMonth(), "");
+
+    // 存錢 KPI
+    const saveDataObj = loadData();
+    document.getElementById("monthSave").textContent =
+      String(monthSum(saveDataObj, now.getFullYear(), now.getMonth(), ""));
     document.getElementById("streak").textContent =
-      computeStreak(data, todayKey, "");
+      String(computeStreak(saveDataObj, todayKey, ""));
+
+    // 花費 KPI
+    const exp = loadExpenses();
+    document.getElementById("monthSpend").textContent =
+      String(expenseMonthSum(exp, now.getFullYear(), now.getMonth()));
   }
 
   async function syncUI(){
