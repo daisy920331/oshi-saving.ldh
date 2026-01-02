@@ -120,6 +120,10 @@
 <script type="module">
   import { guardSetup } from "./assets/app.js";
 guardSetup();
+  
+import { getSiteTitle } from "./assets/app.js";
+document.getElementById("siteName").textContent = getSiteTitle();
+document.title = getSiteTitle();
 
   import {
     getUI, saveUI, applyBackground, setupBGM,
@@ -212,6 +216,7 @@ guardSetup();
 </script>
 </body>
 </html>
+
 
 
 
