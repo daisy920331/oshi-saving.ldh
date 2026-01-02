@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>花費記錄｜日曆</title>
+  <link rel="stylesheet" href="assets/app.css" />
+  <style>
+    .calendar{display:grid; grid-template-columns: repeat(7, 1fr); gap:10px;}
+    .dow{color:var(--muted); font-size:12px; padding:0 2px 6px;}
+    .cell{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background: rgba(255,255,255,.86);
+      min-height:96px;
+      padding:12px;
+      cursor:pointer;
+      position:relative;
+      transition:.12s transform ease, .12s opacity ease;
+    }
+    .cell:hover{transform: translateY(-1px); opacity:.96;}
+    .date{font-weight:800; font-size:14px;}
+    .muted{color:var(--muted); font-size:12px; margin-top:4px;}
+    .sum{margin-top:10px; font-weight:900; font-size:14px;}
+    .outside{opacity:.35}
+
+    .pill-tight{padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:#faf9f6; font-size:12px;}
+
+    /* 右側面板 */
+    .overlay{position:fixed; inset:0; background:rgba(0,0,0,.25); display:none; z-index:20;}
+    .panel{
+      position:fixed; right:0; top:0; height:100%; width:min(440px, 100%);
+      background: rgba(255,255,255,.96);
+      border-left:1px solid var(--line);
+      transform: translateX(100%);
+      transition:.18s transform ease;
+      z-index:21;
+      padding:16px;
+      overflow:auto;
+      backdrop-filter: blur(8px);
+    }
+    .panel.open{transform: translateX(0);}
+    .overlay.show{display:block;}
+    .x{float:right; font-size:14px; padding:8px 10px; border-radius:999px;}
+
+    table{background:white}
+    th{background:#faf9f6}
+    .right{text-align:right}
+    .tiny{font-size:12px; color:var(--muted)}
+    .rowline{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+    .danger{color:#b42318}
+  </style>
+</head>
+<body>
+  <div class="bg-wrap"></div>
+
+  <header>
+    <h1>花費記錄（日曆）</h1>
+    <div class="sub">
+      <a href="index.html">← 回首頁</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="rowline" style="justify-content:space-between; margin-bottom:12px;">
+      <div class="rowline">
+        <button class="btn" id="prev">◀ 上個月</button>
+        <span class="pill-tight">月份：<b id="ym"></b></span>
+        <button class="btn" id="next">下個月 ▶</button>
+      </div>
+      <span class="pill-tight">本月花費：<b id="monthTotal">0</b> 元</span>
+    </div>
+
+    <div class="calendar" id="dow"></div>
+    <div class="calendar" id="cal"></div>
+
+    <p class="hint">點日期新增支出。這頁的資料只存在你的瀏覽器（同一台裝置/同一瀏覽器）。</p>
+  </main>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="panel" id="panel">
+    <button class="btn x" id="close">✕</button>
+
+    <h2 style="margin:0 0 10px; font-size:15px;">當日花費</h2>
+    <div class="rowline" style="margin-bottom:10px;">
+      <span class="pill-tight">日期：<b id="pickedDate"></b></span>
+      <span class="pill-tight">今日合計：<b id="dayTotal">0</b> 元</span>
+    </div>
+
+    <div class="card" style="padding:14px;">
+      <h3 style="margin:0 0 8px; font-size:14px;">新增一筆花費</h3>
+
+      <label>類別</label>
+      <select id="cat">
+        <option value="交通">交通</option>
+        <option value="吃喝">吃喝</option>
+        <option value="日常">日常</option>
+        <option value="推活（周邊/票/運費）">推活（周邊/票/運費）</option>
+        <option value="美容穿搭">美容穿搭</option>
+        <option value="其他">其他</option>
+      </select>
+
+      <label>項目（可選）</label>
+      <input id="title" placeholder="例如：手搖 / 車票 / 周邊運費…" />
+
+      <div class="rowline">
+        <div style="flex:1 1 180px;">
+          <label>金額（元）</label>
+          <input id="amt" type="number" min="0" value="0" />
+        </div>
+        <div style="flex:1 1 180px;">
+          <label>備註（可選）</label>
+          <input id="note" placeholder="例如：跟朋友/限量/必買…" />
+        </div>
+      </div>
+
+      <button class="btn primary" id="add">➕ 加入今天</button>
+      <div class="tiny" style="margin-top:8px;">小技巧：你也可以只填金額，其他留空。</div>
+    </div>
+
+    <div class="card" style="padding:14px; margin-top:10px;">
+      <h3 style="margin:0 0 8px; font-size:14px;">今日明細</h3>
+      <table>
+        <thead>
+          <tr><th>類別</th><th>項目</th><th class="right">金額</th><th class="right">操作</th></tr>
+        </thead>
+        <tbody id="log"></tbody>
+      </table>
+
+      <div class="rowline" style="justify-content:space-between; margin-top:10px;">
+        <button class="btn" id="clearDay"><span class="danger">清空今天</span></button>
+        <span class="tiny">刪除不會影響其他日期</span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ymd, ymLabel, applyBackground, pad } from "./assets/app.js";
+
+    await applyBackground("planner");
+
+    // 花費資料獨立存，不會動到存錢資料
+    const EXP_KEY = "oshi_expenses_v1";
+
+    function loadExpenses(){
+      const raw = localStorage.getItem(EXP_KEY);
+      if(!raw) return { records: {} };
+      try{
+        const x = JSON.parse(raw);
+        if(!x.records) return { records: {} };
+        return x;
+      }catch{
+        return { records: {} };
+      }
+    }
+    function saveExpenses(x){
+      localStorage.setItem(EXP_KEY, JSON.stringify(x));
+    }
+
+    const el = id => document.getElementById(id);
+
+    let exp = loadExpenses();
+    const today = new Date();
+    let viewY = today.getFullYear();
+    let viewM = today.getMonth();
+    let pickedDate = ymd(today);
+
+    function daySum(dateKey){
+      const arr = exp.records[dateKey] || [];
+      return arr.reduce((s,r)=>s + (Number(r.amount)||0), 0);
+    }
+    function monthSum(y,m){
+      const prefix = `${y}-${pad(m+1)}-`;
+      let s = 0;
+      for(const k of Object.keys(exp.records)){
+        if(k.startsWith(prefix)) s += daySum(k);
+      }
+      return s;
+    }
+
+    function renderDow(){
+      const names = ["日","一","二","三","四","五","六"];
+      el("dow").innerHTML = names.map(n=>`<div class="dow">${n}</div>`).join("");
+    }
+
+    function renderCalendar(){
+      el("ym").textContent = ymLabel(viewY, viewM);
+      el("monthTotal").textContent = String(monthSum(viewY, viewM));
+
+      const first = new Date(viewY, viewM, 1);
+      const startDay = first.getDay();
+      const start = new Date(viewY, viewM, 1 - startDay);
+
+      const cells = [];
+      for(let i=0;i<42;i++){
+        const d = new Date(start);
+        d.setDate(start.getDate()+i);
+        const key = ymd(d);
+        const outside = d.getMonth() !== viewM;
+        const sum = daySum(key);
+
+        cells.push(`
+          <div class="cell ${outside ? "outside":""}" data-date="${key}">
+            <div class="date">${d.getDate()}</div>
+            <div class="muted">${sum>0 ? "有花費" : "—"}</div>
+            <div class="sum">${sum} 元</div>
+          </div>
+        `);
+      }
+      el("cal").innerHTML = cells.join("");
+      document.querySelectorAll(".cell").forEach(c=>{
+        c.addEventListener("click", ()=>openDay(c.dataset.date));
+      });
+    }
+
+    function openDay(dateKey){
+      pickedDate = dateKey;
+      el("pickedDate").textContent = pickedDate;
+
+      el("overlay").classList.add("show");
+      el("panel").classList.add("open");
+
+      renderDay();
+    }
+    function closeDay(){
+      el("overlay").classList.remove("show");
+      el("panel").classList.remove("open");
+    }
+
+    function renderDay(){
+      const arr = exp.records[pickedDate] || [];
+      el("dayTotal").textContent = String(daySum(pickedDate));
+
+      const tbody = el("log");
+      if(arr.length === 0){
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted); padding:14px;">今天還沒有花費</td></tr>`;
+        return;
+      }
+
+      // 最新在上
+      tbody.innerHTML = arr.slice().reverse().map((r, idxRev)=>{
+        const idx = arr.length - 1 - idxRev;
+        return `
+          <tr>
+            <td>${r.cat || ""}</td>
+            <td>${r.title || ""}${r.note ? `<div class="tiny">${r.note}</div>` : ""}</td>
+            <td class="right">${r.amount}</td>
+            <td class="right"><button class="btn" data-del="${idx}">刪除</button></td>
+          </tr>
+        `;
+      }).join("");
+
+      tbody.querySelectorAll("button[data-del]").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const i = Number(btn.dataset.del);
+          exp.records[pickedDate].splice(i,1);
+          if(exp.records[pickedDate].length === 0) delete exp.records[pickedDate];
+          saveExpenses(exp);
+          renderDay();
+          renderCalendar();
+        });
+      });
+    }
+
+    el("add").addEventListener("click", ()=>{
+      const cat = el("cat").value;
+      const title = (el("title").value || "").trim();
+      const note = (el("note").value || "").trim();
+      const amount = Math.max(0, Number(el("amt").value || 0));
+
+      if(!exp.records[pickedDate]) exp.records[pickedDate] = [];
+      exp.records[pickedDate].push({ cat, title, note, amount, ts: Date.now() });
+      saveExpenses(exp);
+
+      el("title").value = "";
+      el("note").value = "";
+      el("amt").value = "0";
+
+      renderDay();
+      renderCalendar();
+    });
+
+    el("clearDay").addEventListener("click", ()=>{
+      if(confirm("確定要清空今天全部花費？")){
+        delete exp.records[pickedDate];
+        saveExpenses(exp);
+        renderDay();
+        renderCalendar();
+      }
+    });
+
+    el("prev").addEventListener("click", ()=>{
+      viewM -= 1;
+      if(viewM<0){ viewM=11; viewY-=1; }
+      renderCalendar();
+    });
+    el("next").addEventListener("click", ()=>{
+      viewM += 1;
+      if(viewM>11){ viewM=0; viewY+=1; }
+      renderCalendar();
+    });
+
+    el("overlay").addEventListener("click", closeDay);
+    el("close").addEventListener("click", closeDay);
+
+    renderDow();
+    renderCalendar();
+
+    window.addEventListener("focus", async ()=>{
+      exp = loadExpenses();
+      await applyBackground("planner");
+      renderCalendar();
+    });
+  </script>
+</body>
+</html>
