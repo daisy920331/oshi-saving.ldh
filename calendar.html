@@ -302,31 +302,111 @@
     }, null);
   }
 
-  function renderDecosInCell(cell, dateKey){
-    const decos = loadDecos();
-    const list = decos[dateKey] || [];
-    // 清掉舊的
-    cell.querySelectorAll(".deco").forEach(x=>x.remove());
+ function renderDecosInCell(cell, dateKey){
+  const decos = loadDecos();
+  const list = decos[dateKey] || [];
 
-    for(const d of list){
-      const div = document.createElement("div");
-      div.className = "deco";
-      div.style.left = (d.x ?? 10) + "px";
-      div.style.top  = (d.y ?? 58) + "px";
-      div.style.backgroundImage = `url('${d.src}')`;
+  cell.querySelectorAll(".deco").forEach(x=>x.remove());
 
-      // 雙擊刪除
-      div.ondblclick = (e)=>{
-        e.stopPropagation();
-        const decos2 = loadDecos();
-        decos2[dateKey] = (decos2[dateKey]||[]).filter(x=>x !== d);
-        saveDecos(decos2);
-        renderCalendar();
+  for(const d of list){
+    const div = document.createElement("div");
+    div.className = "deco";
+    div.style.left = (d.x ?? 10) + "px";
+    div.style.top  = (d.y ?? 58) + "px";
+    div.style.backgroundImage = `url('${d.src}')`;
+
+    // ✅ 1) 雙擊刪除
+    div.ondblclick = (e)=>{
+      e.stopPropagation();
+      const decos2 = loadDecos();
+      decos2[dateKey] = (decos2[dateKey]||[]).filter(x=>x !== d);
+      saveDecos(decos2);
+      renderCalendar();
+    };
+
+    // ✅ 2) 拖移貼紙（在格子內拖動位置）
+    div.onpointerdown = (e)=>{
+      e.stopPropagation();
+      div.setPointerCapture(e.pointerId);
+
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      const rectCell = cell.getBoundingClientRect();
+      const startLeft = parseInt(div.style.left || "0", 10);
+      const startTop  = parseInt(div.style.top  || "0", 10);
+
+      const move = (ev)=>{
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+
+        let nx = startLeft + dx;
+        let ny = startTop + dy;
+
+        // 限制在格子內
+        nx = Math.max(6, Math.min(rectCell.width - 40, nx));
+        ny = Math.max(22, Math.min(rectCell.height - 40, ny));
+
+        div.style.left = Math.round(nx) + "px";
+        div.style.top  = Math.round(ny) + "px";
       };
 
-      cell.appendChild(div);
-    }
+      const up = ()=>{
+        div.onpointermove = null;
+        div.onpointerup = null;
+
+        // 寫回儲存
+        const decos2 = loadDecos();
+        const arr = decos2[dateKey] || [];
+        const idx = arr.indexOf(d);
+        if(idx >= 0){
+          arr[idx] = { ...arr[idx],
+            x: parseInt(div.style.left, 10),
+            y: parseInt(div.style.top, 10),
+          };
+          decos2[dateKey] = arr;
+          saveDecos(decos2);
+        }
+      };
+
+      div.onpointermove = move;
+      div.onpointerup = up;
+    };
+
+    // ✅ 3) 右鍵替換圖片（從貼紙庫挑）
+    div.oncontextmenu = (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+
+      const assets = loadAssets();
+      if(!assets.length){
+        alert("你的貼紙庫目前是空的，先在下方『＋新增貼紙』加入圖片吧！");
+        return;
+      }
+
+      // 用 prompt 讓你選第幾張（最穩、免做 UI）
+      const msg =
+        "輸入要替換成第幾張貼紙（1 ~ " + assets.length + "）\n" +
+        "提示：你可以先在下方貼紙區從左到右數。";
+      const n = Number(prompt(msg));
+      if(!Number.isFinite(n) || n < 1 || n > assets.length) return;
+
+      const newSrc = assets[n-1];
+
+      const decos2 = loadDecos();
+      const arr = decos2[dateKey] || [];
+      const idx = arr.indexOf(d);
+      if(idx >= 0){
+        arr[idx] = { ...arr[idx], src: newSrc };
+        decos2[dateKey] = arr;
+        saveDecos(decos2);
+      }
+      renderCalendar();
+    };
+
+    cell.appendChild(div);
   }
+}
 
   function renderCalendar(){
     el("ym").textContent = ymLabel(viewY, viewM);
@@ -579,3 +659,4 @@
 </script>
 </body>
 </html>
+
