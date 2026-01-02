@@ -65,7 +65,6 @@
     }
     .eventCard:hover{transform:translateY(-1px);opacity:.97}
 
-    /* ===== 膠帶（會依分類變色） ===== */
     .eventCard::after{
       content:"";
       position:absolute;
@@ -78,41 +77,17 @@
       opacity:.95;
       pointer-events:none;
       box-shadow: 0 10px 20px rgba(0,0,0,.12);
-      -webkit-mask-image: linear-gradient(90deg,
-        rgba(0,0,0,0) 0%,
-        rgba(0,0,0,1) 12%,
-        rgba(0,0,0,1) 88%,
-        rgba(0,0,0,0) 100%);
-      mask-image: linear-gradient(90deg,
-        rgba(0,0,0,0) 0%,
-        rgba(0,0,0,1) 12%,
-        rgba(0,0,0,1) 88%,
-        rgba(0,0,0,0) 100%);
+      -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
     }
-
-    /* Shokichi：橘紅膠帶 */
-    .tape-shokichi::after{
-      background: rgba(226, 88, 34, .35);
-      border:1px solid rgba(226, 88, 34, .45);
-    }
-
-    /* Akira：黑金膠帶 */
-    .tape-akira::after{
-      background: rgba(40, 40, 40, .30);
-      border:1px solid rgba(180, 150, 90, .65);
-    }
-
-    /* 團體：森林綠膠帶 */
-    .tape-group::after{
-      background: rgba(34, 139, 34, .32);
-      border:1px solid rgba(34, 139, 34, .45);
-    }
+    .tape-shokichi::after{ background: rgba(226, 88, 34, .35); border:1px solid rgba(226, 88, 34, .45); }
+    .tape-akira::after{ background: rgba(40, 40, 40, .30); border:1px solid rgba(180, 150, 90, .65); }
+    .tape-group::after{ background: rgba(34, 139, 34, .32); border:1px solid rgba(34, 139, 34, .45); }
 
     .eventTitle{font-weight:900;font-size:15px;margin:8px 0 0;}
     .eventMeta{margin-top:6px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;}
     .eventSum{margin-top:10px;font-weight:900;font-size:16px;}
 
-    /* 三色標籤 */
     .tag{
       display:inline-flex;
       align-items:center;
@@ -122,25 +97,36 @@
       font-weight:900;
       border:1px solid transparent;
       background:#faf9f6;
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
     }
-    .cat-shokichi{
-      background: rgba(226, 88, 34, .14);
-      color: #c2410c;
-      border-color: rgba(226, 88, 34, .35);
-    }
-    .cat-akira{
-      background: rgba(32, 32, 32, .08);
-      color: #1f1f1f;
-      border-color: rgba(180, 150, 90, .55);
-      box-shadow: inset 0 0 0 1px rgba(180,150,90,.25);
-    }
-    .cat-group{
-      background: rgba(34, 139, 34, .14);
-      color: #166534;
-      border-color: rgba(34, 139, 34, .35);
-    }
+    .cat-shokichi{background: rgba(226, 88, 34, .14); color:#c2410c; border-color: rgba(226, 88, 34, .35);}
+    .cat-akira{background: rgba(32, 32, 32, .08); color:#1f1f1f; border-color: rgba(180,150,90,.55); box-shadow: inset 0 0 0 1px rgba(180,150,90,.25);}
+    .cat-group{background: rgba(34, 139, 34, .14); color:#166534; border-color: rgba(34, 139, 34, .35);}
 
-    /* 明細便條紙 */
+    .overlay{position:fixed; inset:0; background:rgba(0,0,0,.25); display:none; z-index:20;}
+    .panel{
+      position:fixed; right:0; top:0; height:100%; width:min(520px, 100%);
+      background: rgba(255,255,255,.96);
+      border-left:1px solid var(--line);
+      transform: translateX(100%);
+      transition:.18s transform ease;
+      z-index:21;
+      padding:16px;
+      overflow:auto;
+      backdrop-filter: blur(10px);
+    }
+    .panel.open{transform: translateX(0);}
+    .overlay.show{display:block;}
+    .x{float:right; font-size:14px; padding:8px 10px; border-radius:999px;}
+
+    table{background:white}
+    th{background:#faf9f6}
+    .right{text-align:right}
+    .tiny{font-size:12px;color:var(--muted);}
+
     .dayBlock{
       border:1px solid var(--line);
       border-radius:18px;
@@ -148,23 +134,19 @@
       padding:12px;
       margin-top:10px;
       box-shadow:0 10px 22px rgba(0,0,0,.06), 0 2px 0 rgba(0,0,0,.02);
+      position:relative;
+      overflow:hidden;
     }
-    .dayHead{display:flex;justify-content:space-between;cursor:pointer;}
-    .chev{font-size:12px;color:var(--muted);}
+    .dayHead{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;}
+    .dayHead b{font-size:13px;}
+    .chev{color:var(--muted);font-size:12px;}
     .dayBody{display:none;margin-top:10px;}
     .dayBody.open{display:block;}
-
-    .thumb{
-      width:44px;height:44px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      object-fit:cover;
-      background:#faf9f6;
-    }
+    .thumb{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);object-fit:cover;background:#faf9f6;}
   </style>
 </head>
 <body>
-<div class="bg-wrap"></div>
+  <div class="bg-wrap"></div>
 
 <header>
   <h1>事件統整</h1>
@@ -174,13 +156,21 @@
 <div class="wrap">
   <div class="topbar">
     <div class="filters">
-      <div class="seg">
+      <!-- ✅ 存錢/花費切換 -->
+      <div class="seg" id="modeSeg">
+        <button class="active" data-mode="save">存錢</button>
+        <button data-mode="spend">花費</button>
+      </div>
+
+      <!-- ✅ 對象切換 -->
+      <div class="seg" id="catSeg">
         <button class="active" data-cat="">全部</button>
         <button data-cat="Shokichi">Shokichi</button>
         <button data-cat="Akira">Akira</button>
         <button data-cat="GROUP">團體</button>
       </div>
     </div>
+
     <div class="kpis">
       <span class="pill-tight">事件數：<b id="eventCount">0</b></span>
       <span class="pill-tight">合計：<b id="eventTotal">0</b> 元</span>
@@ -190,72 +180,266 @@
   <div class="grid" id="grid"></div>
 </div>
 
+<div class="overlay" id="overlay"></div>
+<div class="panel" id="panel">
+  <button class="btn x" id="close">✕</button>
+
+  <h2 style="margin:0 0 6px; font-size:15px;" id="pTitle">事件</h2>
+  <div class="row" style="margin-bottom:10px;">
+    <span class="pill tag" id="pCat">分類</span>
+    <span class="pill">合計：<b id="pTotal">0</b> 元</span>
+  </div>
+
+  <div id="days"></div>
+</div>
+
 <script type="module">
-import { loadData, applyBackground } from "./assets/app.js";
-await applyBackground("planner");
+  import { loadData, applyBackground } from "./assets/app.js";
+  await applyBackground("planner");
 
-const el = id=>document.getElementById(id);
-let data = loadData();
-let activeCat = "";
+  const EXP_KEY = "oshi_expenses_v1";
 
-function catClass(cat){
-  if((cat||"").includes("Shokichi")) return "cat-shokichi tape-shokichi";
-  if((cat||"").includes("Akira")) return "cat-akira tape-akira";
-  return "cat-group tape-group";
-}
+  const el = (id)=>document.getElementById(id);
+  const esc = (s)=>String(s||"").replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+  const unesc = (s)=>String(s||"").replaceAll("&amp;","&").replaceAll("&lt;","<").replaceAll("&gt;",">").replaceAll("&quot;",'"').replaceAll("&#39;","'");
 
-function matchesFilter(r){
-  if(!activeCat) return true;
-  if(activeCat==="GROUP") return !(r.cat.includes("Shokichi")||r.cat.includes("Akira"));
-  return r.cat.includes(activeCat);
-}
-
-function render(){
-  const map = new Map();
-  for(const [date, arr] of Object.entries(data.records||{})){
-    for(const r of arr){
-      if(!matchesFilter(r)) continue;
-      if(!map.has(r.event)) map.set(r.event,{total:0,days:{}});
-      map.get(r.event).total+=r.amount;
-      (map.get(r.event).days[date]??=[]).push(r);
+  function loadExpenses(){
+    const raw = localStorage.getItem(EXP_KEY);
+    if(!raw) return { records:{} };
+    try{
+      const x = JSON.parse(raw);
+      return x && x.records ? x : { records:{} };
+    }catch{
+      return { records:{} };
     }
   }
 
-  const list=[...map.entries()].map(([event,obj])=>({event,...obj}))
-    .sort((a,b)=>b.total-a.total);
+  let mode = "save"; // save / spend
+  let activeCat = ""; // ""=全部
+  let saveDataObj = loadData();
+  let expObj = loadExpenses();
 
-  el("eventCount").textContent=list.length;
-  el("eventTotal").textContent=list.reduce((s,x)=>s+x.total,0);
+  function catClass(cat){
+    if((cat||"").includes("Shokichi")) return "cat-shokichi";
+    if((cat||"").includes("Akira")) return "cat-akira";
+    return "cat-group";
+  }
+  function tapeClass(cat){
+    if((cat||"").includes("Shokichi")) return "tape-shokichi";
+    if((cat||"").includes("Akira")) return "tape-akira";
+    return "tape-group";
+  }
 
-  el("grid").innerHTML=list.map(item=>{
-    let top=null;
-    Object.values(item.days).forEach(ds=>ds.forEach(r=>{
-      if(!top||r.amount>top.amount) top=r;
-    }));
-    return `
-      <div class="eventCard ${catClass(top?.cat||"")}">
-        <div class="tag ${catClass(top?.cat||"")}">${top?.cat||""}</div>
-        <h3 class="eventTitle">${item.event}</h3>
-        <div class="eventMeta">
-          <span>出現天數：${Object.keys(item.days).length}</span>
-          <span>合計</span>
+  function matchesFilter(cat){
+    if(!activeCat) return true;
+    if(activeCat === "GROUP") return !(cat.includes("Shokichi") || cat.includes("Akira"));
+    return cat.includes(activeCat);
+  }
+
+  // ===== 建索引：存錢（以 event 彙總）=====
+  function buildSaveIndex(){
+    const idx = new Map();
+    for(const [date, arr] of Object.entries(saveDataObj.records || {})){
+      for(const r of (arr||[])){
+        const c = r.cat || "";
+        if(!matchesFilter(c)) continue;
+
+        const key = r.event || "(未命名事件)";
+        if(!idx.has(key)) idx.set(key, { total:0, days:{} });
+
+        const item = idx.get(key);
+        item.total += Number(r.amount)||0;
+        (item.days[date] ??= []).push(r);
+      }
+    }
+    return idx;
+  }
+
+  // ===== 建索引：花費（以 reason 彙總）=====
+  function buildSpendIndex(){
+    const idx = new Map();
+    for(const [date, arr] of Object.entries(expObj.records || {})){
+      for(const r of (arr||[])){
+        const c = r.cat || "";
+        if(!matchesFilter(c)) continue;
+
+        const key = r.reason || "(未命名原因)";
+        if(!idx.has(key)) idx.set(key, { total:0, days:{} });
+
+        const item = idx.get(key);
+        item.total += Number(r.amount)||0;
+        (item.days[date] ??= []).push(r);
+      }
+    }
+    return idx;
+  }
+
+  function renderGrid(){
+    const idx = (mode==="save") ? buildSaveIndex() : buildSpendIndex();
+
+    const list = Array.from(idx.entries())
+      .map(([name, obj]) => ({ name, ...obj }))
+      .sort((a,b)=> (b.total||0) - (a.total||0));
+
+    el("eventCount").textContent = String(list.length);
+    el("eventTotal").textContent = String(list.reduce((s,x)=>s+(x.total||0),0));
+
+    if(list.length === 0){
+      el("grid").innerHTML = `<div class="card">目前沒有符合條件的紀錄。</div>`;
+      return;
+    }
+
+    el("grid").innerHTML = list.map(item=>{
+      // 找最大金額那筆，用來決定色系
+      let top = null;
+      for(const dayArr of Object.values(item.days)){
+        for(const r of dayArr){
+          const a = Number(r.amount)||0;
+          if(!top || a > (Number(top.amount)||0)) top = r;
+        }
+      }
+      const cat = top?.cat || "";
+      const cls = catClass(cat);
+      const tape = tapeClass(cat);
+
+      const dayCount = Object.keys(item.days).length;
+      const recCount = Object.values(item.days).reduce((n,arr)=>n+(arr.length||0),0);
+
+      return `
+        <div class="eventCard ${tape}" data-name="${esc(item.name)}">
+          <div class="tag ${cls}">${esc(cat || "—")}</div>
+          <h3 class="eventTitle">${esc(item.name)}</h3>
+          <div class="eventMeta">
+            <span>出現天數：${dayCount}</span>
+            <span>筆數：${recCount}</span>
+          </div>
+          <div class="eventSum">${item.total} 元</div>
         </div>
-        <div class="eventSum">${item.total} 元</div>
-      </div>
-    `;
-  }).join("");
-}
+      `;
+    }).join("");
 
-document.querySelectorAll(".seg button").forEach(b=>{
-  b.onclick=()=>{
-    document.querySelectorAll(".seg button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");
-    activeCat=b.dataset.cat||"";
-    render();
-  };
-});
+    document.querySelectorAll(".eventCard").forEach(card=>{
+      card.addEventListener("click", ()=>{
+        openEvent(unesc(card.getAttribute("data-name")));
+      });
+    });
+  }
 
-render();
+  function openEvent(name){
+    const idx = (mode==="save") ? buildSaveIndex() : buildSpendIndex();
+    const item = idx.get(name);
+    if(!item) return;
+
+    el("overlay").classList.add("show");
+    el("panel").classList.add("open");
+
+    el("pTitle").textContent = name;
+    el("pTotal").textContent = String(item.total);
+
+    let top = null;
+    for(const dayArr of Object.values(item.days)){
+      for(const r of dayArr){
+        const a = Number(r.amount)||0;
+        if(!top || a > (Number(top.amount)||0)) top = r;
+      }
+    }
+    const cat = top?.cat || "";
+    el("pCat").className = "pill tag " + catClass(cat);
+    el("pCat").textContent = cat || "—";
+
+    const dates = Object.keys(item.days).sort((a,b)=> b.localeCompare(a));
+
+    el("days").innerHTML = dates.map(date=>{
+      const arr = item.days[date].slice().sort((a,b)=> (b.amount||0)-(a.amount||0));
+      const dayTotal = arr.reduce((s,r)=>s+(Number(r.amount)||0),0);
+
+      const rows = (mode==="save")
+        ? arr.map(r=>`
+            <tr>
+              <td>${r.rewardImg ? `<img class="thumb" src="${esc(r.rewardImg)}" alt="reward">` : ""}</td>
+              <td>${esc(r.cat||"")}</td>
+              <td>${esc(r.event||"")}${r.times>1?` ×${r.times}`:""}</td>
+              <td class="right">${Number(r.amount)||0}</td>
+            </tr>
+          `).join("")
+        : arr.map(r=>`
+            <tr>
+              <td>${esc(r.cat||"")}</td>
+              <td>${esc(r.reason||"")}</td>
+              <td>${esc(r.note||"")}</td>
+              <td class="right">${Number(r.amount)||0}</td>
+            </tr>
+          `).join("");
+
+      const headCols = (mode==="save")
+        ? `<thead><tr><th>鼓勵</th><th>對象</th><th>事件</th><th class="right">金額</th></tr></thead>`
+        : `<thead><tr><th>對象</th><th>原因</th><th>備註</th><th class="right">金額</th></tr></thead>`;
+
+      return `
+        <div class="dayBlock">
+          <div class="dayHead">
+            <div>
+              <b>${date}</b>
+              <div class="tiny">當天合計：${dayTotal} 元｜${arr.length} 筆</div>
+            </div>
+            <div class="chev">展開 ▾</div>
+          </div>
+          <div class="dayBody">
+            <table>
+              ${headCols}
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    document.querySelectorAll(".dayHead").forEach(head=>{
+      head.addEventListener("click", ()=>{
+        const body = head.parentElement.querySelector(".dayBody");
+        const chev = head.querySelector(".chev");
+        const open = body.classList.toggle("open");
+        chev.textContent = open ? "收合 ▴" : "展開 ▾";
+      });
+    });
+  }
+
+  function closePanel(){
+    el("overlay").classList.remove("show");
+    el("panel").classList.remove("open");
+  }
+
+  el("overlay").addEventListener("click", closePanel);
+  el("close").addEventListener("click", closePanel);
+
+  // mode 切換
+  document.querySelectorAll("#modeSeg button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll("#modeSeg button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      mode = btn.dataset.mode;
+      renderGrid();
+    });
+  });
+
+  // cat 切換
+  document.querySelectorAll("#catSeg button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll("#catSeg button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      activeCat = btn.dataset.cat || "";
+      renderGrid();
+    });
+  });
+
+  renderGrid();
+
+  window.addEventListener("focus", async ()=>{
+    saveDataObj = loadData();
+    expObj = loadExpenses();
+    await applyBackground("planner");
+    renderGrid();
+  });
 </script>
 </body>
 </html>
