@@ -3,34 +3,194 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>追星存錢｜事件統整</title>
+  <title>事件統整</title>
   <link rel="stylesheet" href="assets/app.css" />
   <style>
-    .two{display:grid; gap:12px;}
-    @media (min-width:900px){ .two{grid-template-columns: .95fr 1.05fr;} }
-    .list{display:flex; flex-direction:column; gap:8px;}
-    .item{
+    .wrap{max-width:960px;margin:0 auto;padding:24px 16px 40px;}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+    .seg{
+      display:flex; gap:6px; padding:6px;
       border:1px solid var(--line);
-      background: rgba(18,26,39,.80);
-      border-radius:14px;
-      padding:12px;
+      background:rgba(255,255,255,.75);
+      border-radius:999px;
+    }
+    .seg button{
+      border:1px solid transparent;
+      background:transparent;
+      padding:10px 14px;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .seg button.active{
+      background:#fff;
+      border-color:var(--line);
+      color:var(--ink);
+      box-shadow:0 10px 22px rgba(0,0,0,.08), 0 2px 0 rgba(0,0,0,.03);
+      font-weight:800;
+    }
+
+    .kpis{display:flex;gap:10px;flex-wrap:wrap;}
+    .pill-tight{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#faf9f6;
+      font-size:12px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    @media (min-width:880px){
+      .grid{grid-template-columns: 1fr 1fr;}
+    }
+
+    .eventCard{
+      position:relative;
+      border:1px solid var(--line);
+      border-radius:20px;
+      background:rgba(255,255,255,.88);
+      padding:16px;
       cursor:pointer;
       transition:.12s transform ease, .12s opacity ease;
+      overflow:hidden;
+      box-shadow:0 10px 22px rgba(0,0,0,.08), 0 2px 0 rgba(0,0,0,.03);
     }
-    .item:hover{transform: translateY(-1px); opacity:.96;}
-    .item .t{font-weight:900;}
-    .item .m{color:var(--muted); font-size:12px; margin-top:4px;}
-    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
-    .tab{
-      padding:8px 10px; border:1px solid var(--line);
-      border-radius:999px; background:var(--btn);
-      cursor:pointer; color:var(--muted);
-      font-size:12px; font-weight:900;
+    .eventCard:hover{transform:translateY(-1px);opacity:.97}
+
+    /* ✅ 卡片右上角：貼紙膠帶 */
+    .eventCard::after{
+      content:"";
+      position:absolute;
+      top:-10px;
+      right:14px;
+      width:86px;
+      height:30px;
+      transform: rotate(7deg);
+      background: rgba(157,183,198,.34);
+      border: 1px solid rgba(157,183,198,.35);
+      box-shadow: 0 10px 20px rgba(0,0,0,.12);
+      border-radius: 8px;
+      opacity:.95;
+      pointer-events:none;
+      -webkit-mask-image: linear-gradient(90deg,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,1) 12%,
+        rgba(0,0,0,1) 88%,
+        rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(90deg,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,1) 12%,
+        rgba(0,0,0,1) 88%,
+        rgba(0,0,0,0) 100%);
     }
-    .tab.active{
-      color:var(--ink);
-      border-color: rgba(125,211,252,.35);
-      box-shadow:0 0 0 2px rgba(125,211,252,.1) inset;
+
+    .eventTitle{font-weight:900;font-size:15px;margin:8px 0 0;}
+    .eventMeta{margin-top:6px;color:var(--muted);font-size:12px;display:flex;gap:10px;flex-wrap:wrap;}
+    .eventSum{margin-top:10px;font-weight:900;font-size:16px;}
+
+    /* 三色系（跟月曆一致） */
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      border:1px solid transparent;
+      background:#faf9f6;
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .cat-shokichi{
+      background: rgba(226, 88, 34, .14);
+      color: #c2410c;
+      border-color: rgba(226, 88, 34, .35);
+    }
+    .cat-akira{
+      background: rgba(32, 32, 32, .08);
+      color: #1f1f1f;
+      border-color: rgba(180, 150, 90, .55);
+      box-shadow: inset 0 0 0 1px rgba(180,150,90,.25);
+    }
+    .cat-group{
+      background: rgba(34, 139, 34, .14);
+      color: #166534;
+      border-color: rgba(34, 139, 34, .35);
+    }
+
+    /* 明細面板 */
+    .overlay{position:fixed; inset:0; background:rgba(0,0,0,.25); display:none; z-index:20;}
+    .panel{
+      position:fixed; right:0; top:0; height:100%; width:min(520px, 100%);
+      background: rgba(255,255,255,.96);
+      border-left:1px solid var(--line);
+      transform: translateX(100%);
+      transition:.18s transform ease;
+      z-index:21;
+      padding:16px;
+      overflow:auto;
+      backdrop-filter: blur(10px);
+    }
+    .panel.open{transform: translateX(0);}
+    .overlay.show{display:block;}
+    .x{float:right; font-size:14px; padding:8px 10px; border-radius:999px;}
+
+    table{background:white}
+    th{background:#faf9f6}
+    .right{text-align:right}
+    .tiny{font-size:12px;color:var(--muted);}
+
+    /* ✅ dayBlock：淡色底（手帳便條紙感） */
+    .dayBlock{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background: rgba(250, 249, 246, .92);
+      padding:12px;
+      margin-top:10px;
+      box-shadow:
+        0 10px 22px rgba(0,0,0,.06),
+        0 2px 0 rgba(0,0,0,.02);
+      position:relative;
+      overflow:hidden;
+    }
+    /* 便條紙細微紋理 */
+    .dayBlock::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image: radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px);
+      background-size: 18px 18px;
+      opacity:.10;
+      pointer-events:none;
+    }
+
+    .dayHead{
+      display:flex;justify-content:space-between;align-items:center;gap:10px;
+      cursor:pointer;
+      position:relative;
+      z-index:1;
+    }
+    .dayHead b{font-size:13px;}
+    .chev{color:var(--muted);font-size:12px;}
+    .dayBody{display:none;margin-top:10px; position:relative; z-index:1;}
+    .dayBody.open{display:block;}
+
+    .thumb{
+      width:44px;height:44px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      object-fit:cover;
+      background:#faf9f6;
     }
   </style>
 </head>
@@ -38,244 +198,239 @@
   <div class="bg-wrap"></div>
 
 <header>
-  <h1>事件統整（日系手帳風）</h1>
-  <p class="sub"><a href="index.html">← 回首頁</a>　｜　<a href="calendar.html">去月曆記錄</a></p>
+  <h1>事件統整</h1>
+  <div class="sub"><a href="index.html">← 回首頁</a></div>
 </header>
 
-<main class="two">
-  <section class="card">
-    <h2 style="margin:0 0 8px; font-size:15px;">事件列表</h2>
-
-    <div class="tabs" id="catTabs"></div>
-
-    <div class="row">
-      <div style="flex:1 1 240px;">
-        <label>搜尋事件</label>
-        <input id="q" type="text" placeholder="例如：IG / 直播 / 雜誌..." />
-      </div>
-      <div style="flex:1 1 160px;">
-        <label>排序</label>
-        <select id="sort">
-          <option value="money_desc">金額：高→低</option>
-          <option value="money_asc">金額：低→高</option>
-          <option value="name_asc">名稱：A→Z</option>
-          <option value="name_desc">名稱：Z→A</option>
-        </select>
-      </div>
-      <div style="flex:0 0 auto; margin-top:28px;">
-        <button class="btn" id="refresh">🔄 重新整理</button>
+<div class="wrap">
+  <div class="topbar">
+    <div class="filters">
+      <div class="seg" role="tablist" aria-label="分類切換">
+        <button class="active" data-cat="">全部</button>
+        <button data-cat="Shokichi">Shokichi</button>
+        <button data-cat="Akira">Akira</button>
+        <button data-cat="GROUP">團體</button>
       </div>
     </div>
 
-    <div class="row" style="margin-top:10px;">
-      <span class="pill">事件數：<b id="eventCount">0</b></span>
-      <span class="pill">總存入：<b id="grand">0</b> 元</span>
-      <span class="pill">目前分類：<b id="pickedCat">全部</b></span>
+    <div class="kpis">
+      <span class="pill-tight">事件數：<b id="eventCount">0</b></span>
+      <span class="pill-tight">合計：<b id="eventTotal">0</b> 元</span>
     </div>
+  </div>
 
-    <div class="list" id="eventList" style="margin-top:12px;"></div>
-    <p class="hint">分類切換會同步影響：事件加總、日期加總、當日明細。</p>
-  </section>
+  <div class="grid" id="grid"></div>
+</div>
 
-  <aside class="card">
-    <h2 style="margin:0 0 8px; font-size:15px;">詳細</h2>
+<div class="overlay" id="overlay"></div>
+<div class="panel" id="panel">
+  <button class="btn x" id="close">✕</button>
 
-    <div class="row" style="margin-top:10px;">
-      <span class="pill">目前事件：<b id="pickedEvent">（尚未選）</b></span>
-      <span class="pill">事件總額：<b id="pickedEventSum">0</b> 元</span>
-      <span class="pill">目前日期：<b id="pickedDate">（尚未選）</b></span>
-    </div>
+  <h2 style="margin:0 0 6px; font-size:15px;" id="pTitle">事件</h2>
+  <div class="row" style="margin-bottom:10px;">
+    <span class="pill tag" id="pCat">分類</span>
+    <span class="pill">合計：<b id="pTotal">0</b> 元</span>
+  </div>
 
-    <div style="margin-top:10px;">
-      <h3 style="margin:0 0 8px; font-size:14px;">此事件的每日加總</h3>
-      <table>
-        <thead><tr><th>日期</th><th class="right">金額</th><th class="right">查看</th></tr></thead>
-        <tbody id="datesBody"></tbody>
-      </table>
-    </div>
-
-    <div style="margin-top:10px;">
-      <h3 style="margin:0 0 8px; font-size:14px;">該日明細（依分類篩選）</h3>
-      <table>
-        <thead><tr><th>鼓勵</th><th>分類</th><th>事件</th><th class="right">金額</th></tr></thead>
-        <tbody id="dayBody"></tbody>
-      </table>
-    </div>
-  </aside>
-</main>
+  <div id="days"></div>
+</div>
 
 <script type="module">
-  import {
-    loadData, sumByEvent, sumByDateForEvent, filterRecordsByCat,
-    applyBackground
-  } from "./assets/app.js";
+  import { loadData, applyBackground } from "./assets/app.js";
 
   await applyBackground("planner");
 
-  const el = id => document.getElementById(id);
+  const el = (id)=>document.getElementById(id);
+
   let data = loadData();
+  let activeCat = "";
 
-  let filterCat = ""; // "" => all
-  let currentEvent = "";
-  let currentDate = "";
+  function catClass(cat){
+    if((cat||"").includes("Shokichi")) return "cat-shokichi";
+    if((cat||"").includes("Akira")) return "cat-akira";
+    return "cat-group";
+  }
 
-  function grandTotalFiltered(){
-    let s = 0;
-    for(const arr of Object.values(data.records)){
-      for(const r of filterRecordsByCat(arr, filterCat)){
-        s += (Number(r.amount)||0);
+  function matchesFilter(rec){
+    if(!activeCat) return true;
+    const c = rec.cat || "";
+    if(activeCat === "GROUP") return !(c.includes("Shokichi") || c.includes("Akira"));
+    return c.includes(activeCat);
+  }
+
+  function buildEventIndex(){
+    const idx = new Map();
+    for(const [date, arr] of Object.entries(data.records || {})){
+      for(const r of (arr||[])){
+        if(!matchesFilter(r)) continue;
+
+        const key = r.event || "(未命名事件)";
+        if(!idx.has(key)) idx.set(key, { total:0, days:{} });
+
+        const item = idx.get(key);
+        item.total += Number(r.amount)||0;
+        if(!item.days[date]) item.days[date] = [];
+        item.days[date].push(r);
       }
     }
-    return s;
+    return idx;
   }
 
-  function renderTabs(){
-    const tabs = el("catTabs");
-    tabs.innerHTML = "";
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[m]));
+  }
+  function unescapeHtml(s){
+    return String(s)
+      .replaceAll("&amp;","&")
+      .replaceAll("&lt;","<")
+      .replaceAll("&gt;",">")
+      .replaceAll("&quot;",'"')
+      .replaceAll("&#39;","'");
+  }
 
-    const items = [
-      {label:"全部", value:""},
-      {label:"Shokichi", value:"Shokichi（個人）"},
-      {label:"Akira", value:"Akira（個人）"},
-      {label:"團體", value:"EXILE THE SECOND（團體）"},
-    ];
+  function renderGrid(){
+    const idx = buildEventIndex();
+    const list = Array.from(idx.entries())
+      .map(([eventName, obj]) => ({ eventName, ...obj }))
+      .sort((a,b)=> (b.total||0) - (a.total||0));
 
-    for(const t of items){
-      const div = document.createElement("div");
-      div.className = "tab" + (filterCat === t.value ? " active" : "");
-      div.textContent = t.label;
-      div.addEventListener("click", ()=>{
-        filterCat = t.value;
-        el("pickedCat").textContent = t.label;
-        renderTabs();
-        renderEventList();
-        if(currentEvent) pickEvent(currentEvent);
-        else { renderDatesForEvent(); renderDayAll(); }
+    el("eventCount").textContent = String(list.length);
+    el("eventTotal").textContent = String(list.reduce((s,x)=>s+(x.total||0),0));
+
+    if(list.length === 0){
+      el("grid").innerHTML = `<div class="card">目前沒有符合條件的紀錄。</div>`;
+      return;
+    }
+
+    el("grid").innerHTML = list.map(item=>{
+      // 用這個事件中「最大金額那筆」的對象，決定卡片色系（視覺一致）
+      let top = null;
+      for(const dayArr of Object.values(item.days)){
+        for(const r of dayArr){
+          const a = Number(r.amount)||0;
+          if(!top || a > (Number(top.amount)||0)) top = r;
+        }
+      }
+      const cls = catClass(top?.cat || "");
+      const tagText = top?.cat || "—";
+      const dayCount = Object.keys(item.days).length;
+      const recCount = Object.values(item.days).reduce((n,arr)=>n+(arr.length||0),0);
+
+      return `
+        <div class="eventCard" data-event="${escapeHtml(item.eventName)}">
+          <div class="tag ${cls}">${escapeHtml(tagText)}</div>
+          <h3 class="eventTitle">${escapeHtml(item.eventName)}</h3>
+          <div class="eventMeta">
+            <span>出現天數：${dayCount}</span>
+            <span>筆數：${recCount}</span>
+          </div>
+          <div class="eventSum">${item.total} 元</div>
+        </div>
+      `;
+    }).join("");
+
+    document.querySelectorAll(".eventCard").forEach(card=>{
+      card.addEventListener("click", ()=>{
+        const eventName = unescapeHtml(card.getAttribute("data-event"));
+        openEvent(eventName);
       });
-      tabs.appendChild(div);
-    }
+    });
   }
 
-  function renderEventList(){
-    const q = (el("q").value || "").trim().toLowerCase();
-    const sort = el("sort").value;
+  function openEvent(eventName){
+    const idx = buildEventIndex();
+    const item = idx.get(eventName);
+    if(!item) return;
 
-    const map = sumByEvent(data, filterCat);
-    let arr = [...map.entries()].map(([event, total])=>({event, total}));
+    el("overlay").classList.add("show");
+    el("panel").classList.add("open");
 
-    if(q) arr = arr.filter(x => x.event.toLowerCase().includes(q));
+    el("pTitle").textContent = eventName;
+    el("pTotal").textContent = String(item.total);
 
-    if(sort === "money_desc") arr.sort((a,b)=>b.total-a.total);
-    if(sort === "money_asc") arr.sort((a,b)=>a.total-b.total);
-    if(sort === "name_asc") arr.sort((a,b)=>a.event.localeCompare(b.event));
-    if(sort === "name_desc") arr.sort((a,b)=>b.event.localeCompare(a.event));
-
-    el("eventCount").textContent = String(arr.length);
-    el("grand").textContent = String(grandTotalFiltered());
-
-    const list = el("eventList");
-    list.innerHTML = "";
-    if(arr.length === 0){
-      list.innerHTML = `<div style="color:var(--muted); padding:12px;">沒有符合的事件。先去月曆頁記錄一筆吧。</div>`;
-      return;
+    // 面板分類標籤：取事件內最大金額那筆
+    let top = null;
+    for(const dayArr of Object.values(item.days)){
+      for(const r of dayArr){
+        const a = Number(r.amount)||0;
+        if(!top || a > (Number(top.amount)||0)) top = r;
+      }
     }
+    const cat = top?.cat || "";
+    el("pCat").className = "pill tag " + catClass(cat);
+    el("pCat").textContent = cat || "—";
 
-    for(const x of arr){
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `<div class="t">${x.event}</div><div class="m">累計：${x.total} 元（點我看日期）</div>`;
-      div.addEventListener("click", ()=>pickEvent(x.event));
-      list.appendChild(div);
-    }
-  }
+    const dates = Object.keys(item.days).sort((a,b)=> b.localeCompare(a));
 
-  function pickEvent(eventName){
-    currentEvent = eventName;
-    el("pickedEvent").textContent = eventName;
-    const total = sumByEvent(data, filterCat).get(eventName) || 0;
-    el("pickedEventSum").textContent = String(total);
+    el("days").innerHTML = dates.map(date=>{
+      const arr = item.days[date].slice().sort((a,b)=> (b.amount||0)-(a.amount||0));
+      const dayTotal = arr.reduce((s,r)=>s+(Number(r.amount)||0),0);
 
-    currentDate = "";
-    el("pickedDate").textContent = "（尚未選）";
-    renderDatesForEvent();
-    renderDayAll();
-  }
+      const rows = arr.map(r=>`
+        <tr>
+          <td>${r.rewardImg ? `<img class="thumb" src="${escapeHtml(r.rewardImg)}" alt="reward">` : ""}</td>
+          <td>${escapeHtml(r.cat||"")}</td>
+          <td>${escapeHtml(r.event||"")}${r.times>1?` ×${r.times}`:""}</td>
+          <td class="right">${Number(r.amount)||0}</td>
+        </tr>
+      `).join("");
 
-  function renderDatesForEvent(){
-    const tbody = el("datesBody");
-    tbody.innerHTML = "";
+      return `
+        <div class="dayBlock">
+          <div class="dayHead">
+            <div>
+              <b>${date}</b>
+              <div class="tiny">當天合計：${dayTotal} 元｜${arr.length} 筆</div>
+            </div>
+            <div class="chev">展開 ▾</div>
+          </div>
+          <div class="dayBody">
+            <table>
+              <thead><tr><th>鼓勵</th><th>存款對象</th><th>事件</th><th class="right">金額</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join("");
 
-    if(!currentEvent){
-      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--muted); padding:14px;">先在左邊選一個事件</td></tr>`;
-      return;
-    }
-
-    const rows = sumByDateForEvent(data, currentEvent, filterCat);
-    if(rows.length === 0){
-      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--muted); padding:14px;">此事件在目前分類沒有紀錄</td></tr>`;
-      return;
-    }
-
-    for(const [date, sum] of rows){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${date}</td><td class="right">${sum}</td><td class="right"><button class="btn">查看</button></td>`;
-      tr.querySelector("button").addEventListener("click", ()=>{
-        currentDate = date;
-        el("pickedDate").textContent = date;
-        renderDayAll();
+    document.querySelectorAll(".dayHead").forEach(head=>{
+      head.addEventListener("click", ()=>{
+        const body = head.parentElement.querySelector(".dayBody");
+        const chev = head.querySelector(".chev");
+        const open = body.classList.toggle("open");
+        chev.textContent = open ? "收合 ▴" : "展開 ▾";
       });
-      tbody.appendChild(tr);
-    }
+    });
   }
 
-  function renderDayAll(){
-    const tbody = el("dayBody");
-    tbody.innerHTML = "";
-
-    if(!currentDate){
-      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted); padding:14px;">先選一個日期</td></tr>`;
-      return;
-    }
-
-    const arr = data.records[currentDate] || [];
-    const filtered = filterRecordsByCat(arr, filterCat).slice().reverse();
-
-    if(filtered.length === 0){
-      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted); padding:14px;">該日（在目前分類）無紀錄</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = filtered.map(x=>`
-      <tr>
-        <td>${x.rewardImg ? `<img class="thumb" src="${x.rewardImg}" alt="reward">` : ""}</td>
-        <td>${x.cat}</td>
-        <td>${x.event}${x.times>1?` ×${x.times}`:""}</td>
-        <td class="right">${x.amount}</td>
-      </tr>
-    `).join("");
+  function closePanel(){
+    el("overlay").classList.remove("show");
+    el("panel").classList.remove("open");
   }
 
-  el("q").addEventListener("input", renderEventList);
-  el("sort").addEventListener("change", renderEventList);
-  el("refresh").addEventListener("click", async ()=>{
-    data = loadData();
-    await applyBackground("planner");
-    renderEventList();
-    if(currentEvent) pickEvent(currentEvent);
-    else { renderDatesForEvent(); renderDayAll(); }
+  document.getElementById("overlay").addEventListener("click", closePanel);
+  document.getElementById("close").addEventListener("click", closePanel);
+
+  // 分類切換
+  document.querySelectorAll(".seg button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".seg button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      activeCat = btn.dataset.cat || "";
+      data = loadData();
+      renderGrid();
+    });
   });
 
-  renderTabs();
-  el("pickedCat").textContent = "全部";
-  renderEventList();
-  renderDatesForEvent();
-  renderDayAll();
+  renderGrid();
 
   window.addEventListener("focus", async ()=>{
     data = loadData();
     await applyBackground("planner");
-    renderEventList();
-    if(currentEvent) pickEvent(currentEvent);
+    renderGrid();
   });
 </script>
 </body>
