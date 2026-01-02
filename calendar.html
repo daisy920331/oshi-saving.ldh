@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>追星存錢｜月曆版</title>
+  <link rel="stylesheet" href="assets/app.css" />
+  <style>
+    .calendar{display:grid; grid-template-columns: repeat(7, 1fr); gap:8px;}
+    .dow{color:var(--muted); font-size:12px; padding:0 2px 6px;}
+    .cell{
+      border:1px solid var(--line); border-radius:14px; background:rgba(18,26,39,.80);
+      min-height:92px; padding:10px; cursor:pointer; position:relative;
+      transition:.12s transform ease, .12s opacity ease;
+    }
+    .cell:hover{transform: translateY(-1px); opacity:.96;}
+    .date{font-weight:900; font-size:14px;}
+    .muted{color:var(--muted); font-size:12px;}
+    .sum{margin-top:8px; font-weight:900; font-size:14px;}
+    .outside{opacity:.35}
+
+    .overlay{position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; z-index:20;}
+    .panel{
+      position:fixed; right:0; top:0; height:100%; width:min(440px, 100%);
+      background:rgba(11,15,23,.92); border-left:1px solid var(--line);
+      transform: translateX(100%); transition:.18s transform ease;
+      z-index:21; padding:14px; overflow:auto;
+      backdrop-filter: blur(10px);
+    }
+    .panel.open{transform: translateX(0);}
+    .overlay.show{display:block;}
+    .x{float:right; font-size:18px; padding:6px 10px; border-radius:12px;}
+
+    .reward{
+      position:fixed; inset:0; display:none; place-items:center; z-index:30;
+      background:rgba(0,0,0,.65);
+    }
+    .reward.show{display:grid;}
+    .rewardBox{
+      width:min(520px, 92vw); border:1px solid var(--line); border-radius:16px;
+      background:#0b0f17; overflow:hidden;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+    }
+    .rewardBox img{width:100%; display:block;}
+    .rewardBar{display:flex; justify-content:space-between; align-items:center; padding:10px 12px;}
+    .rewardBar b{font-size:13px;}
+  </style>
+</head>
+<body>
+  <div class="bg-wrap"></div>
+
+<header>
+  <h1>月曆版存錢（日系手帳風）</h1>
+  <p class="sub"><a href="index.html">← 回首頁</a>　｜　點日期記錄（貼紙＝當天最大金額那筆）</p>
+</header>
+
+<main>
+  <div class="row" style="margin-bottom:10px;">
+    <button class="btn" id="prev">◀ 上個月</button>
+    <span class="pill">目前月份：<b id="ym"></b></span>
+    <button class="btn" id="next">下個月 ▶</button>
+    <span class="pill">本月累計：<b id="monthTotal">0</b> 元</span>
+  </div>
+
+  <div class="calendar" id="dow"></div>
+  <div class="calendar" id="cal"></div>
+
+  <p class="hint">提示：先去 settings 設 repo，並把鼓勵圖放到 assets/images/reward/。</p>
+</main>
+
+<div class="overlay" id="overlay"></div>
+<div class="panel" id="panel">
+  <button class="btn x" id="close">✕</button>
+  <h2 style="margin:0 0 8px; font-size:15px;">每日紀錄</h2>
+  <div class="pill">日期：<b id="pickedDate"></b></div>
+
+  <div class="card" style="margin-top:10px;">
+    <h3 style="margin:0 0 8px; font-size:14px;">新增一筆</h3>
+
+    <label>分類</label>
+    <select id="cat"></select>
+
+    <label>事件</label>
+    <select id="event"></select>
+
+    <div class="row">
+      <div style="flex:1 1 140px;">
+        <label>次數</label>
+        <input id="times" type="number" min="1" value="1" />
+      </div>
+      <div style="flex:1 1 180px;">
+        <label>本次金額（自動）</label>
+        <input id="amt" type="number" disabled />
+      </div>
+    </div>
+
+    <button class="btn good" id="add">➕ 加入今天</button>
+    <div class="hint">金額沒想好可以先設 0，之後再調整。</div>
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <h3 style="margin:0; font-size:14px;">今天累計：<span id="dayTotal">0</span> 元</h3>
+    <table>
+      <thead><tr><th>鼓勵</th><th>分類</th><th>事件</th><th class="right">金額</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+    <button class="btn bad" id="clearDay" style="margin-top:10px;">清空今天</button>
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <h3 style="margin:0 0 8px; font-size:14px;">事件金額設定（全站共用）</h3>
+    <label>選事件</label>
+    <select id="editEvent"></select>
+    <label>金額（元）</label>
+    <input id="editAmount" type="number" min="0" value="0" />
+    <div class="row" style="margin-top:10px;">
+      <button class="btn" id="saveRule">💾 儲存金額</button>
+      <button class="btn" id="addEvent">✨ 新增自訂事件</button>
+    </div>
+  </div>
+</div>
+
+<div class="reward" id="reward">
+  <div class="rewardBox">
+    <img id="rewardImg" alt="reward">
+    <div class="rewardBar">
+      <b id="rewardText">你做得很好！</b>
+      <button class="btn" id="rewardClose">收下鼓勵</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    CATS, loadData, saveData, ymd, ymLabel, monthSum, daySum,
+    pickRewardImage, daySticker, applyBackground
+  } from "./assets/app.js";
+
+  await applyBackground("planner");
+
+  const el = id => document.getElementById(id);
+
+  let data = loadData();
+  const today = new Date();
+  let viewY = today.getFullYear();
+  let viewM = today.getMonth();
+  let pickedDate = ymd(today);
+
+  function renderDow(){
+    const names = ["日","一","二","三","四","五","六"];
+    el("dow").innerHTML = names.map(n=>`<div class="dow">${n}</div>`).join("");
+  }
+
+  function renderCalendar(){
+    el("ym").textContent = ymLabel(viewY, viewM);
+    el("monthTotal").textContent = String(monthSum(data, viewY, viewM, ""));
+
+    const first = new Date(viewY, viewM, 1);
+    const startDay = first.getDay();
+    const start = new Date(viewY, viewM, 1 - startDay);
+
+    const cells = [];
+    for(let i=0;i<42;i++){
+      const d = new Date(start);
+      d.setDate(start.getDate()+i);
+      const key = ymd(d);
+      const outside = d.getMonth() !== viewM;
+      const sum = daySum(data, key, "");
+      const has = sum > 0;
+
+      const sticker = has ? daySticker(data, key, "") : "";
+
+      cells.push(`
+        <div class="cell ${outside ? "outside":""}" data-date="${key}">
+          <div class="date">${d.getDate()}</div>
+          <div class="muted">${has ? "已存錢" : "尚未"}</div>
+          <div class="sum">${sum} 元</div>
+          ${sticker ? `<div class="sticker" style="background-image:url('${sticker}')"></div>` : ""}
+        </div>
+      `);
+    }
+    el("cal").innerHTML = cells.join("");
+    document.querySelectorAll(".cell").forEach(c=>{
+      c.addEventListener("click", ()=>openDay(c.dataset.date));
+    });
+  }
+
+  function fillPanel(){
+    el("cat").innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join("");
+    const events = Object.keys(data.rules);
+    el("event").innerHTML = events.map(e=>`<option value="${e}">${e}</option>`).join("");
+    el("editEvent").innerHTML = events.map(e=>`<option value="${e}">${e}</option>`).join("");
+    syncAmt();
+    syncEditAmount();
+  }
+
+  function syncAmt(){
+    const e = el("event").value;
+    const times = Math.max(1, Number(el("times").value || 1));
+    const unit = Number(data.rules[e] || 0);
+    el("amt").value = unit * times;
+  }
+  function syncEditAmount(){
+    const e = el("editEvent").value;
+    el("editAmount").value = Number(data.rules[e] || 0);
+  }
+
+  function renderDay(){
+    el("pickedDate").textContent = pickedDate;
+    const arr = data.records[pickedDate] || [];
+    el("dayTotal").textContent = String(daySum(data, pickedDate, ""));
+
+    const rows = arr.slice().reverse().map(x=>`
+      <tr>
+        <td>${x.rewardImg ? `<img class="thumb" src="${x.rewardImg}" alt="reward">` : ""}</td>
+        <td>${x.cat}</td>
+        <td>${x.event}${x.times>1 ? ` ×${x.times}`:""}</td>
+        <td class="right">${x.amount}</td>
+      </tr>
+    `).join("");
+
+    el("log").innerHTML = rows || `<tr><td colspan="4" style="color:var(--muted); padding:14px;">今天還沒有紀錄</td></tr>`;
+  }
+
+  function openDay(dateKey){
+    pickedDate = dateKey;
+    el("overlay").classList.add("show");
+    el("panel").classList.add("open");
+    fillPanel();
+    renderDay();
+  }
+  function closeDay(){
+    el("overlay").classList.remove("show");
+    el("panel").classList.remove("open");
+  }
+
+  function showReward(amount, rewardImg){
+    if(!rewardImg) return;
+    el("rewardImg").src = rewardImg;
+    el("rewardText").textContent = `存入 ${amount} 元！你超棒！`;
+    el("reward").classList.add("show");
+  }
+  function closeReward(){
+    el("reward").classList.remove("show");
+  }
+
+  el("times").addEventListener("input", ()=>{ if(Number(el("times").value)<1) el("times").value=1; syncAmt(); });
+  el("event").addEventListener("change", syncAmt);
+  el("editEvent").addEventListener("change", syncEditAmount);
+
+  el("add").addEventListener("click", async ()=>{
+    const cat = el("cat").value;
+    const event = el("event").value;
+    const times = Math.max(1, Number(el("times").value||1));
+    const unit = Number(data.rules[event]||0);
+    const amount = unit * times;
+
+    const rewardImg = await pickRewardImage(); // ✅遠端清單隨機鼓勵圖
+
+    if(!data.records[pickedDate]) data.records[pickedDate] = [];
+    data.records[pickedDate].push({ cat, event, times, amount, rewardImg, ts: Date.now() });
+
+    saveData(data);
+    renderDay();
+    renderCalendar();
+    showReward(amount, rewardImg);
+  });
+
+  el("clearDay").addEventListener("click", ()=>{
+    if(confirm("確定要清空今天全部紀錄？")){
+      delete data.records[pickedDate];
+      saveData(data);
+      renderDay();
+      renderCalendar();
+    }
+  });
+
+  el("saveRule").addEventListener("click", ()=>{
+    const e = el("editEvent").value;
+    const amt = Math.max(0, Number(el("editAmount").value||0));
+    data.rules[e] = amt;
+    saveData(data);
+    syncAmt();
+    alert("已儲存金額！");
+  });
+
+  el("addEvent").addEventListener("click", ()=>{
+    const name = prompt("輸入新事件名稱：");
+    if(!name) return;
+    const k = name.trim();
+    if(!k) return;
+    if(Object.prototype.hasOwnProperty.call(data.rules, k)){
+      alert("事件已存在！");
+      return;
+    }
+    data.rules[k] = 0;
+    saveData(data);
+    fillPanel();
+    alert("已新增事件（金額先設 0）");
+  });
+
+  el("prev").addEventListener("click", ()=>{
+    viewM -= 1;
+    if(viewM<0){ viewM=11; viewY-=1; }
+    renderCalendar();
+  });
+  el("next").addEventListener("click", ()=>{
+    viewM += 1;
+    if(viewM>11){ viewM=0; viewY+=1; }
+    renderCalendar();
+  });
+
+  el("overlay").addEventListener("click", closeDay);
+  el("close").addEventListener("click", closeDay);
+
+  el("rewardClose").addEventListener("click", closeReward);
+  el("reward").addEventListener("click", (e)=>{ if(e.target.id==="reward") closeReward(); });
+
+  renderDow();
+  renderCalendar();
+
+  window.addEventListener("focus", async ()=>{
+    data = loadData();
+    await applyBackground("planner");
+    renderCalendar();
+  });
+</script>
+</body>
+</html>
