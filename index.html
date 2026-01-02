@@ -4,167 +4,124 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>追星存錢手帳</title>
+
+  <!-- 全站共用樣式 -->
   <link rel="stylesheet" href="assets/app.css" />
+
+  <!-- 首頁小調整 -->
   <style>
-    /* 三大入口：手機自動變 1 欄，電腦 3 欄 */
+    main{
+      max-width:900px;
+      margin:0 auto;
+      padding:40px 16px 60px;
+    }
+
     .home-actions{
       display:grid;
       grid-template-columns: 1fr;
-      gap:18px;
-      width:100%;
-      max-width:860px;
+      gap:20px;
+      margin-top:40px;
     }
-    @media (min-width:820px){
-      .home-actions{ grid-template-columns: 1fr 1fr 1fr; }
+    @media (min-width:720px){
+      .home-actions{
+        grid-template-columns: 1fr 1fr;
+      }
     }
+
+    .home-actions a{
+      text-decoration:none;
+    }
+
     .home-actions .btn.primary{
-      height:150px;
-      padding:24px;
+      width:100%;
+      min-height:180px;
+      font-size:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:10px;
     }
-    .home-actions .icon{font-size:40px;}
-    .home-actions .desc{
+
+    .home-kpi{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:20px;
+    }
+
+    .home-kpi .pill{
+      font-size:14px;
+    }
+
+    footer{
+      margin-top:60px;
+      text-align:center;
       font-size:12px;
       color:var(--muted);
-      margin-top:6px;
-      font-weight:500;
-      letter-spacing:0;
     }
   </style>
 </head>
+
 <body>
   <div class="bg-wrap"></div>
 
-<header>
-  <h1>追星存錢手帳</h1>
+  <header>
+    <h1>追星存錢手帳</h1>
+    <div class="sub">為 Shokichi / Akira / EXILE THE SECOND</div>
+  </header>
 
-  <!-- 右上角小小素材庫 -->
-  <a class="mini-link" href="settings.html">素材庫</a>
-</header>
-
-<main class="home-main">
-  <!-- KPI -->
-  <div class="row">
-    <span class="pill">本月存入：<b id="monthSave">0</b></span>
-    <span class="pill">本月花費：<b id="monthSpend">0</b></span>
-    <span class="pill">連續打卡：<b id="streak">0</b> 天</span>
-  </div>
-
-  <!-- 三個大入口 -->
-  <div class="home-actions">
-    <a class="btn primary" href="calendar.html">
-      <div class="icon">📅</div>
-      <div>月曆存錢</div>
-      <div class="desc">點日期記錄存入，貼紙＝當天最大金額</div>
-    </a>
-
-    <a class="btn primary" href="events.html">
-      <div class="icon">📊</div>
-      <div>事件統整</div>
-      <div class="desc">按分類切換，點事件看每日與明細</div>
-    </a>
-
-    <a class="btn primary" href="expense.html">
-      <div class="icon">🧾</div>
-      <div>花費日曆</div>
-      <div class="desc">點日期記錄支出，本月合計一眼看懂</div>
-    </a>
-  </div>
-
-  <!-- 最下面：外觀與音樂（小小的） -->
-  <div class="home-footer">
-    <div class="row">
-      <button class="btn" id="bgPrev">背景 ◀</button>
-      <button class="btn" id="bgNext">背景 ▶</button>
-
-      <span>透明度</span>
-      <input id="bgOpacity" type="range" min="0.1" max="0.6" step="0.05" />
-
-      <button class="btn" id="musicToggle">🎵 音樂</button>
+  <main>
+    <!-- KPI -->
+    <div class="home-kpi">
+      <span class="pill">本月合計：<b id="monthTotal">0</b> 元</span>
+      <span class="pill">連續存錢：<b id="streak">0</b> 天</span>
     </div>
 
-    <audio id="bgm" style="width:100%;margin-top:8px;display:none" controls></audio>
-  </div>
-</main>
+    <!-- 主要入口（⚠️ 只有連結，沒有 script） -->
+    <div class="home-actions">
+      <a href="calendar.html" class="btn primary">
+        📅 月曆存錢
+        <span class="muted">每天記錄，貼紙鼓勵</span>
+      </a>
 
-<script type="module">
-  import {
-    getUI, saveUI, applyBackground, setupBGM,
-    loadData, monthSum, computeStreak, ymd, pad
-  } from "./assets/app.js";
+      <a href="events.html" class="btn primary">
+        📚 事件統整
+        <span class="muted">依事件回顧每一筆</span>
+      </a>
 
-  // 花費資料 key（跟 expense.html 一致）
-  const EXP_KEY = "oshi_expenses_v1";
-  function loadExpenses(){
-    const raw = localStorage.getItem(EXP_KEY);
-    if(!raw) return { records:{} };
-    try{
-      const x = JSON.parse(raw);
-      return x && x.records ? x : { records:{} };
-    }catch{
-      return { records:{} };
-    }
-  }
-  function expenseMonthSum(exp, y, m){
-    const prefix = `${y}-${pad(m+1)}-`;
-    let s = 0;
-    for(const k of Object.keys(exp.records)){
-      if(!k.startsWith(prefix)) continue;
-      const arr = exp.records[k] || [];
-      s += arr.reduce((t,r)=>t + (Number(r.amount)||0), 0);
-    }
-    return s;
-  }
+      <a href="spend.html" class="btn primary">
+        💸 花費記錄
+        <span class="muted">追星花了多少一眼看</span>
+      </a>
+    </div>
 
-  const bgOpacity = document.getElementById("bgOpacity");
-  const musicToggle = document.getElementById("musicToggle");
-  const audio = document.getElementById("bgm");
+    <footer>
+      <p>手帳風 × 推活紀錄</p>
+    </footer>
+  </main>
 
-  function syncKPI(){
-    const now = new Date();
-    const todayKey = ymd(now);
+  <!-- ⚠️ 只有 JS 檔才用 script -->
+  <script type="module">
+    import {
+      loadData,
+      monthSum,
+      calcStreak,
+      applyBackground
+    } from "./assets/app.js";
 
-    // 存錢 KPI
-    const saveDataObj = loadData();
-    document.getElementById("monthSave").textContent =
-      String(monthSum(saveDataObj, now.getFullYear(), now.getMonth(), ""));
-    document.getElementById("streak").textContent =
-      String(computeStreak(saveDataObj, todayKey, ""));
-
-    // 花費 KPI
-    const exp = loadExpenses();
-    document.getElementById("monthSpend").textContent =
-      String(expenseMonthSum(exp, now.getFullYear(), now.getMonth()));
-  }
-
-  async function syncUI(){
-    const ui = getUI();
     await applyBackground("home");
-    bgOpacity.value = String(ui.bgOpacity ?? 0.25);
-    musicToggle.textContent = ui.musicOn ? "🎵 音樂 ON" : "🎵 音樂 OFF";
-    audio.style.display = ui.musicOn ? "block" : "none";
-    await setupBGM(audio);
-  }
 
-  document.getElementById("bgPrev").onclick = async ()=>{
-    const ui = getUI(); ui.bgIndexHome--; saveUI(ui); await syncUI();
-  };
-  document.getElementById("bgNext").onclick = async ()=>{
-    const ui = getUI(); ui.bgIndexHome++; saveUI(ui); await syncUI();
-  };
-  bgOpacity.oninput = async ()=>{
-    const ui = getUI(); ui.bgOpacity = Number(bgOpacity.value);
-    saveUI(ui); await applyBackground("home");
-  };
-  musicToggle.onclick = async ()=>{
-    const ui = getUI(); ui.musicOn = !ui.musicOn; saveUI(ui);
-    await syncUI();
-    if(ui.musicOn){ try{ await audio.play(); }catch{} }
-    else{ audio.pause(); audio.currentTime = 0; }
-  };
+    const el = id => document.getElementById(id);
+    const data = loadData();
 
-  await syncUI();
-  syncKPI();
-  window.addEventListener("focus", syncKPI);
-</script>
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+
+    el("monthTotal").textContent = String(monthSum(data, y, m, ""));
+    el("streak").textContent = String(calcStreak(data));
+  </script>
 </body>
 </html>
