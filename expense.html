@@ -10,7 +10,6 @@
     .calendar{display:grid; grid-template-columns: repeat(7, 1fr); gap:10px;}
     .dow{color:var(--muted); font-size:12px; padding:0 2px 6px;}
 
-    /* 月份列：置中 */
     .monthbar{
       display:grid;
       grid-template-columns: 1fr auto 1fr;
@@ -82,6 +81,7 @@
       box-shadow:0 10px 18px rgba(0,0,0,.16);
       border:1px solid rgba(255,255,255,.55);
       cursor:grab;
+      z-index:3;
     }
 
     /* 側邊面板 */
@@ -185,15 +185,20 @@
     <label>對象</label>
     <select id="cat"></select>
 
-    <label>原因 / 類型（可自由輸入）</label>
-    <input id="reason" type="text" placeholder="例：周邊、交通、餐費、演唱會相關…" />
+    <label>原因類型</label>
+    <select id="reasonSel"></select>
 
-    <div class="row">
-      <div style="flex:1 1 220px;">
-        <label>金額</label>
-        <input id="amt" type="number" min="0" value="0" />
-      </div>
+    <div id="reasonOtherWrap" style="display:none;">
+      <label>其他原因（自填）</label>
+      <input id="reasonOther" type="text" placeholder="例：停車費、寄送、代購手續費…" />
     </div>
+
+    <!-- ✅ 備註：永遠可填 -->
+    <label>備註</label>
+    <textarea id="note" rows="3" placeholder="例：買了哪個周邊/在哪裡買/誰代購…"></textarea>
+
+    <label>金額</label>
+    <input id="amt" type="number" min="0" value="0" />
 
     <button class="btn primary" id="add">➕ 加入今天</button>
 
@@ -206,7 +211,7 @@
   <div class="card" style="padding:14px; margin-top:10px;">
     <h3 style="margin:0 0 8px; font-size:14px;">今日明細</h3>
     <table>
-      <thead><tr><th>對象</th><th>原因</th><th class="right">金額</th></tr></thead>
+      <thead><tr><th>對象</th><th>原因</th><th>備註</th><th class="right">金額</th></tr></thead>
       <tbody id="log"></tbody>
     </table>
   </div>
@@ -221,9 +226,18 @@
   const ASSET_KEY = "oshi_deco_assets_v1";     // 共用貼紙庫（存錢/花費共用）
   const DECO_KEY  = "oshi_expense_decos_v1";   // 花費月曆裝飾（各自一份）
 
-  const el = id => document.getElementById(id);
+  // ✅ 原因選項（可自行增減）
+  const REASONS = [
+    "周邊/代購",
+    "交通",
+    "餐飲",
+    "住宿",
+    "活動/票務相關",
+    "會員/訂閱",
+    "其他"
+  ];
 
-  // 小工具
+  const el = id => document.getElementById(id);
   const pad = n => String(n).padStart(2,"0");
 
   function loadExpenses(){
@@ -286,6 +300,13 @@
     }, null);
   }
 
+  function esc(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;");
+  }
+
   // ===== calendar state =====
   let exp = loadExpenses();
   const today = new Date();
@@ -312,8 +333,12 @@
       div.style.top  = (d.y ?? 58) + "px";
       div.style.backgroundImage = `url('${d.src}')`;
 
+      // 阻擋單擊冒泡（避免點到格子）
+      div.onclick = (e)=>{ e.preventDefault(); e.stopPropagation(); };
+
       // 雙擊刪除
       div.ondblclick = (e)=>{
+        e.preventDefault();
         e.stopPropagation();
         const decos2 = loadDecos();
         decos2[dateKey] = (decos2[dateKey]||[]).filter(x=>x !== d);
@@ -321,8 +346,9 @@
         renderCalendar();
       };
 
-      // 拖移
+      // 拖移貼紙（在格子內拖動位置）
       div.onpointerdown = (e)=>{
+        e.preventDefault();
         e.stopPropagation();
         div.setPointerCapture(e.pointerId);
 
@@ -351,6 +377,7 @@
           div.onpointermove = null;
           div.onpointerup = null;
 
+          // 寫回儲存
           const decos2 = loadDecos();
           const arr = decos2[dateKey] || [];
           const idx = arr.indexOf(d);
@@ -368,7 +395,7 @@
         div.onpointerup = up;
       };
 
-      // 右鍵替換
+      // 右鍵替換圖片
       div.oncontextmenu = (e)=>{
         e.preventDefault();
         e.stopPropagation();
@@ -378,6 +405,7 @@
           alert("你的貼紙庫目前是空的，先在下方『＋新增貼紙』加入圖片吧！");
           return;
         }
+
         const msg =
           "輸入要替換成第幾張貼紙（1 ~ " + assets.length + "）\n" +
           "提示：你可以先在下方貼紙區從左到右數。";
@@ -411,7 +439,7 @@
     for(let i=0;i<42;i++){
       const d = new Date(start);
       d.setDate(start.getDate()+i);
-      const key = ymd(d);
+      const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
       const outside = d.getMonth() !== viewM;
 
       const sum = daySum(exp, key);
@@ -422,7 +450,7 @@
         <div class="cell ${outside?"outside":""} ${has?"has-spend":"no-spend"}" data-date="${key}">
           <div class="date">${d.getDate()}</div>
           <div class="sum">${sum} 元</div>
-          ${top ? `<div class="topcat ${catClass(top.cat||"")}">${top.cat||""}</div>` : ""}
+          ${top ? `<div class="topcat ${catClass(top.cat||"")}">${esc(top.cat||"")}</div>` : ""}
         </div>
       `);
     }
@@ -458,8 +486,8 @@
 
   function renderAssetTray(){
     const assets = loadAssets();
-    el("assetTray").innerHTML = assets.map((src, idx)=>`
-      <img class="assetItem" draggable="true" data-idx="${idx}" src="${src}" alt="asset">
+    el("assetTray").innerHTML = assets.map((src)=>`
+      <img class="assetItem" draggable="true" src="${src}" alt="asset">
     `).join("");
 
     document.querySelectorAll(".assetItem").forEach(img=>{
@@ -469,13 +497,24 @@
     });
   }
 
-  // 面板
+  // ===== panel =====
+  function syncReasonOther(){
+    const isOther = el("reasonSel").value === "其他";
+    el("reasonOtherWrap").style.display = isOther ? "block" : "none";
+    if(!isOther) el("reasonOther").value = "";
+  }
+
   function openDay(dateKey){
     pickedDate = dateKey;
     el("pickedDate").textContent = pickedDate;
 
     // 對象
-    el("cat").innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join("");
+    el("cat").innerHTML = CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+
+    // 原因選單
+    el("reasonSel").innerHTML = REASONS.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join("");
+    el("reasonSel").value = REASONS[0];
+    syncReasonOther();
 
     el("overlay").classList.add("show");
     el("panel").classList.add("open");
@@ -487,6 +526,8 @@
     el("panel").classList.remove("open");
   }
 
+  el("reasonSel").addEventListener("change", syncReasonOther);
+
   function renderDay(){
     el("dayTotal").textContent = String(daySum(exp, pickedDate));
     const arr = exp.records[pickedDate] || [];
@@ -494,30 +535,49 @@
     el("log").innerHTML = arr.length
       ? arr.slice().reverse().map(r=>`
         <tr>
-          <td>${r.cat||""}</td>
-          <td>${(r.reason||"").replaceAll("<","&lt;").replaceAll(">","&gt;")}</td>
+          <td>${esc(r.cat)}</td>
+          <td>${esc(r.reason)}</td>
+          <td>${esc(r.note)}</td>
           <td class="right">${Number(r.amount)||0}</td>
         </tr>
       `).join("")
-      : `<tr><td colspan="3" style="color:var(--muted); padding:14px;">今天還沒有花費</td></tr>`;
+      : `<tr><td colspan="4" style="color:var(--muted); padding:14px;">今天還沒有花費</td></tr>`;
   }
 
-  // 新增花費
+  // ✅ 新增花費（修正：備註永遠獨立，不受「其他」影響）
   el("add").addEventListener("click", ()=>{
     const cat = el("cat").value;
-    const reason = (el("reason").value || "").trim();
+
+    // 原因：是否為「其他」只影響 reason，不影響 note
+    let reason = el("reasonSel").value;
+    if(reason === "其他"){
+      const custom = (el("reasonOther").value || "").trim();
+      if(custom){
+        reason = `其他：${custom}`;
+      } else {
+        reason = "其他";
+      }
+    }
+
+    // 備註：永遠可填
+    const note = (el("note").value || "").trim();
     const amount = Math.max(0, Number(el("amt").value || 0));
 
     if(!exp.records[pickedDate]) exp.records[pickedDate] = [];
-    exp.records[pickedDate].push({ cat, reason, amount, ts: Date.now() });
+    exp.records[pickedDate].push({ cat, reason, note, amount, ts: Date.now() });
 
     saveExpenses(exp);
     renderDay();
     renderCalendar();
 
     // 清空輸入（保留對象）
-    el("reason").value = "";
+    el("note").value = "";
     el("amt").value = 0;
+
+    // 若當下是其他就清掉自填欄
+    if(el("reasonSel").value === "其他"){
+      el("reasonOther").value = "";
+    }
   });
 
   // 清空今天花費
