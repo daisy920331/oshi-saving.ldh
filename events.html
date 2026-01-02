@@ -194,6 +194,9 @@
 </div>
 
 <script type="module">
+  import { guardSetup } from "./assets/app.js";
+guardSetup();
+
   import { loadData, applyBackground } from "./assets/app.js";
   await applyBackground("planner");
 
@@ -443,3 +446,4 @@
 </script>
 </body>
 </html>
+
