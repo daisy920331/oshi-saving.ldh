@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>追星存錢｜事件統整</title>
+  <link rel="stylesheet" href="assets/app.css" />
+  <style>
+    .two{display:grid; gap:12px;}
+    @media (min-width:900px){ .two{grid-template-columns: .95fr 1.05fr;} }
+    .list{display:flex; flex-direction:column; gap:8px;}
+    .item{
+      border:1px solid var(--line);
+      background: rgba(18,26,39,.80);
+      border-radius:14px;
+      padding:12px;
+      cursor:pointer;
+      transition:.12s transform ease, .12s opacity ease;
+    }
+    .item:hover{transform: translateY(-1px); opacity:.96;}
+    .item .t{font-weight:900;}
+    .item .m{color:var(--muted); font-size:12px; margin-top:4px;}
+    .tabs{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+    .tab{
+      padding:8px 10px; border:1px solid var(--line);
+      border-radius:999px; background:var(--btn);
+      cursor:pointer; color:var(--muted);
+      font-size:12px; font-weight:900;
+    }
+    .tab.active{
+      color:var(--ink);
+      border-color: rgba(125,211,252,.35);
+      box-shadow:0 0 0 2px rgba(125,211,252,.1) inset;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-wrap"></div>
+
+<header>
+  <h1>事件統整（日系手帳風）</h1>
+  <p class="sub"><a href="index.html">← 回首頁</a>　｜　<a href="calendar.html">去月曆記錄</a></p>
+</header>
+
+<main class="two">
+  <section class="card">
+    <h2 style="margin:0 0 8px; font-size:15px;">事件列表</h2>
+
+    <div class="tabs" id="catTabs"></div>
+
+    <div class="row">
+      <div style="flex:1 1 240px;">
+        <label>搜尋事件</label>
+        <input id="q" type="text" placeholder="例如：IG / 直播 / 雜誌..." />
+      </div>
+      <div style="flex:1 1 160px;">
+        <label>排序</label>
+        <select id="sort">
+          <option value="money_desc">金額：高→低</option>
+          <option value="money_asc">金額：低→高</option>
+          <option value="name_asc">名稱：A→Z</option>
+          <option value="name_desc">名稱：Z→A</option>
+        </select>
+      </div>
+      <div style="flex:0 0 auto; margin-top:28px;">
+        <button class="btn" id="refresh">🔄 重新整理</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <span class="pill">事件數：<b id="eventCount">0</b></span>
+      <span class="pill">總存入：<b id="grand">0</b> 元</span>
+      <span class="pill">目前分類：<b id="pickedCat">全部</b></span>
+    </div>
+
+    <div class="list" id="eventList" style="margin-top:12px;"></div>
+    <p class="hint">分類切換會同步影響：事件加總、日期加總、當日明細。</p>
+  </section>
+
+  <aside class="card">
+    <h2 style="margin:0 0 8px; font-size:15px;">詳細</h2>
+
+    <div class="row" style="margin-top:10px;">
+      <span class="pill">目前事件：<b id="pickedEvent">（尚未選）</b></span>
+      <span class="pill">事件總額：<b id="pickedEventSum">0</b> 元</span>
+      <span class="pill">目前日期：<b id="pickedDate">（尚未選）</b></span>
+    </div>
+
+    <div style="margin-top:10px;">
+      <h3 style="margin:0 0 8px; font-size:14px;">此事件的每日加總</h3>
+      <table>
+        <thead><tr><th>日期</th><th class="right">金額</th><th class="right">查看</th></tr></thead>
+        <tbody id="datesBody"></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:10px;">
+      <h3 style="margin:0 0 8px; font-size:14px;">該日明細（依分類篩選）</h3>
+      <table>
+        <thead><tr><th>鼓勵</th><th>分類</th><th>事件</th><th class="right">金額</th></tr></thead>
+        <tbody id="dayBody"></tbody>
+      </table>
+    </div>
+  </aside>
+</main>
+
+<script type="module">
+  import {
+    loadData, sumByEvent, sumByDateForEvent, filterRecordsByCat,
+    applyBackground
+  } from "./assets/app.js";
+
+  await applyBackground("planner");
+
+  const el = id => document.getElementById(id);
+  let data = loadData();
+
+  let filterCat = ""; // "" => all
+  let currentEvent = "";
+  let currentDate = "";
+
+  function grandTotalFiltered(){
+    let s = 0;
+    for(const arr of Object.values(data.records)){
+      for(const r of filterRecordsByCat(arr, filterCat)){
+        s += (Number(r.amount)||0);
+      }
+    }
+    return s;
+  }
+
+  function renderTabs(){
+    const tabs = el("catTabs");
+    tabs.innerHTML = "";
+
+    const items = [
+      {label:"全部", value:""},
+      {label:"Shokichi", value:"Shokichi（個人）"},
+      {label:"Akira", value:"Akira（個人）"},
+      {label:"團體", value:"EXILE THE SECOND（團體）"},
+    ];
+
+    for(const t of items){
+      const div = document.createElement("div");
+      div.className = "tab" + (filterCat === t.value ? " active" : "");
+      div.textContent = t.label;
+      div.addEventListener("click", ()=>{
+        filterCat = t.value;
+        el("pickedCat").textContent = t.label;
+        renderTabs();
+        renderEventList();
+        if(currentEvent) pickEvent(currentEvent);
+        else { renderDatesForEvent(); renderDayAll(); }
+      });
+      tabs.appendChild(div);
+    }
+  }
+
+  function renderEventList(){
+    const q = (el("q").value || "").trim().toLowerCase();
+    const sort = el("sort").value;
+
+    const map = sumByEvent(data, filterCat);
+    let arr = [...map.entries()].map(([event, total])=>({event, total}));
+
+    if(q) arr = arr.filter(x => x.event.toLowerCase().includes(q));
+
+    if(sort === "money_desc") arr.sort((a,b)=>b.total-a.total);
+    if(sort === "money_asc") arr.sort((a,b)=>a.total-b.total);
+    if(sort === "name_asc") arr.sort((a,b)=>a.event.localeCompare(b.event));
+    if(sort === "name_desc") arr.sort((a,b)=>b.event.localeCompare(a.event));
+
+    el("eventCount").textContent = String(arr.length);
+    el("grand").textContent = String(grandTotalFiltered());
+
+    const list = el("eventList");
+    list.innerHTML = "";
+    if(arr.length === 0){
+      list.innerHTML = `<div style="color:var(--muted); padding:12px;">沒有符合的事件。先去月曆頁記錄一筆吧。</div>`;
+      return;
+    }
+
+    for(const x of arr){
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerHTML = `<div class="t">${x.event}</div><div class="m">累計：${x.total} 元（點我看日期）</div>`;
+      div.addEventListener("click", ()=>pickEvent(x.event));
+      list.appendChild(div);
+    }
+  }
+
+  function pickEvent(eventName){
+    currentEvent = eventName;
+    el("pickedEvent").textContent = eventName;
+    const total = sumByEvent(data, filterCat).get(eventName) || 0;
+    el("pickedEventSum").textContent = String(total);
+
+    currentDate = "";
+    el("pickedDate").textContent = "（尚未選）";
+    renderDatesForEvent();
+    renderDayAll();
+  }
+
+  function renderDatesForEvent(){
+    const tbody = el("datesBody");
+    tbody.innerHTML = "";
+
+    if(!currentEvent){
+      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--muted); padding:14px;">先在左邊選一個事件</td></tr>`;
+      return;
+    }
+
+    const rows = sumByDateForEvent(data, currentEvent, filterCat);
+    if(rows.length === 0){
+      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--muted); padding:14px;">此事件在目前分類沒有紀錄</td></tr>`;
+      return;
+    }
+
+    for(const [date, sum] of rows){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${date}</td><td class="right">${sum}</td><td class="right"><button class="btn">查看</button></td>`;
+      tr.querySelector("button").addEventListener("click", ()=>{
+        currentDate = date;
+        el("pickedDate").textContent = date;
+        renderDayAll();
+      });
+      tbody.appendChild(tr);
+    }
+  }
+
+  function renderDayAll(){
+    const tbody = el("dayBody");
+    tbody.innerHTML = "";
+
+    if(!currentDate){
+      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted); padding:14px;">先選一個日期</td></tr>`;
+      return;
+    }
+
+    const arr = data.records[currentDate] || [];
+    const filtered = filterRecordsByCat(arr, filterCat).slice().reverse();
+
+    if(filtered.length === 0){
+      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted); padding:14px;">該日（在目前分類）無紀錄</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(x=>`
+      <tr>
+        <td>${x.rewardImg ? `<img class="thumb" src="${x.rewardImg}" alt="reward">` : ""}</td>
+        <td>${x.cat}</td>
+        <td>${x.event}${x.times>1?` ×${x.times}`:""}</td>
+        <td class="right">${x.amount}</td>
+      </tr>
+    `).join("");
+  }
+
+  el("q").addEventListener("input", renderEventList);
+  el("sort").addEventListener("change", renderEventList);
+  el("refresh").addEventListener("click", async ()=>{
+    data = loadData();
+    await applyBackground("planner");
+    renderEventList();
+    if(currentEvent) pickEvent(currentEvent);
+    else { renderDatesForEvent(); renderDayAll(); }
+  });
+
+  renderTabs();
+  el("pickedCat").textContent = "全部";
+  renderEventList();
+  renderDatesForEvent();
+  renderDayAll();
+
+  window.addEventListener("focus", async ()=>{
+    data = loadData();
+    await applyBackground("planner");
+    renderEventList();
+    if(currentEvent) pickEvent(currentEvent);
+  });
+</script>
+</body>
+</html>
