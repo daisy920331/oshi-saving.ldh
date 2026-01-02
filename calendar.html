@@ -32,7 +32,27 @@
         0 12px 24px rgba(0,0,0,.08),
         0 2px 0 rgba(0,0,0,.03);
     }
-    .cell.no-money{ background: rgba(255,255,255,.65); }
+/* === 沒存錢：更暗（對比更強） === */
+.cell.no-money{
+  background: rgba(120,120,120,.12);   /* 灰霧底 */
+  border-color: rgba(120,120,120,.22);
+  box-shadow: none;
+}
+
+/* 沒存錢時，文字也更淡 */
+.cell.no-money .sum{
+  color: rgba(43,43,43,.45);
+}
+.cell.no-money .muted{
+  color: rgba(43,43,43,.35);
+}
+
+/* 沒存錢時不要顯示貼紙/標籤（保險） */
+.cell.no-money .sticker,
+.cell.no-money .topcat{
+  display:none;
+}
+
 
     /* ===== 存款對象貼紙（顏色） ===== */
     .topcat{
@@ -305,3 +325,4 @@ renderCalendar();
 </script>
 </body>
 </html>
+
