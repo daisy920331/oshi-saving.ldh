@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>設定｜LDH追星存錢手帳</title>
+  <link rel="stylesheet" href="assets/app.css"/>
+  <style>
+    .wrap{max-width:920px;margin:0 auto;padding:20px 16px 44px;}
+    .paper{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 18px 34px rgba(0,0,0,.10), 0 2px 0 rgba(0,0,0,.03);
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .paper::after{
+      content:"";
+      position:absolute; top:-10px; right:18px;
+      width:110px; height:34px;
+      background:rgba(180,150,90,.22);
+      border:1px solid rgba(180,150,90,.30);
+      border-radius:10px;
+      transform:rotate(7deg);
+      box-shadow:0 10px 18px rgba(0,0,0,.10);
+      -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      opacity:.95;
+      pointer-events:none;
+    }
+    h1{margin:0 0 10px;font-size:18px;}
+    .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+    .card2{border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;margin-top:12px;}
+    .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .catList{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+    .catItem{border:1px solid var(--line);border-radius:16px;background:rgba(250,249,246,.92);padding:12px;}
+    .previewTag{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;border:1px solid transparent;
+      font-weight:900;font-size:12px;margin-top:10px;width:fit-content;
+    }
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+    .danger{color:#b42318;}
+  </style>
+</head>
+<body>
+  <div class="bg-wrap"></div>
+
+<header>
+  <h1>設定</h1>
+  <div class="sub"><a href="index.html">← 回首頁</a></div>
+</header>
+
+<div class="wrap">
+  <div class="paper">
+
+    <div class="card2">
+      <h2 style="margin:0 0 10px;font-size:15px;">手帳名稱</h2>
+      <label>你的名字</label>
+      <input id="ownerName" type="text" placeholder="例：小美"/>
+      <label style="margin-top:10px;">自訂手帳名稱（可留空）</label>
+      <input id="siteTitle" type="text" placeholder="例：小美的LDH追星存錢手帳"/>
+      <div class="hint">留空會用「你的名字＋的LDH追星存錢手帳」。</div>
+    </div>
+
+    <div class="card2">
+      <h2 style="margin:0 0 10px;font-size:15px;">對象與顏色</h2>
+      <div class="row2">
+        <input id="newCat" type="text" placeholder="新增對象（例：EXILE THE SECOND）" style="flex:1 1 240px;">
+        <button class="btn" id="addCat">＋新增</button>
+      </div>
+      <div class="catList" id="catList"></div>
+    </div>
+
+    <div class="card2">
+      <h2 style="margin:0 0 10px;font-size:15px;">背景</h2>
+      <label>選擇背景</label>
+      <select id="bgSelect"></select>
+
+      <label style="margin-top:10px;">或上傳自己的背景</label>
+      <input id="bgUpload" type="file" accept="image/*"/>
+      <div class="hint">上傳會存進瀏覽器。清除瀏覽資料會消失，可再上傳。</div>
+    </div>
+
+    <div class="card2">
+      <h2 style="margin:0 0 10px;font-size:15px;">音樂</h2>
+      <label>上傳音樂（mp3 / m4a）</label>
+      <input id="musicUpload" type="file" accept="audio/*"/>
+      <div class="hint">音樂也會存進瀏覽器。若你不需要音樂，可以不設定。</div>
+    </div>
+
+    <div class="btnRow">
+      <button class="btn primary" id="save">💾 儲存設定</button>
+      <button class="btn" id="reRunSetup">重新跑首次設定</button>
+      <button class="btn" id="wipeConfig"><span class="danger">清除設定</span></button>
+    </div>
+    <div class="hint">儲存後，回到月曆/事件頁就會套用新對象與顏色。</div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    getBuiltInBackgrounds, getConfig, saveConfig, applyBackground, getCatTheme
+  } from "./assets/app.js";
+
+  await applyBackground("planner");
+
+  const el = (id)=>document.getElementById(id);
+
+  const cfg = getConfig() || {
+    setupDone: true,
+    ownerName: "",
+    siteTitle: "",
+    cats: ["Shokichi","Akira","團體"],
+    themeMap: {},
+    backgroundUrl: "",
+    musicDataUrl: ""
+  };
+
+  el("ownerName").value = cfg.ownerName || "";
+  el("siteTitle").value = cfg.siteTitle || "";
+
+  const bgs = getBuiltInBackgrounds().filter(Boolean);
+  el("bgSelect").innerHTML = bgs.map(u=>`<option value="${u}">${u}</option>`).join("");
+  if (cfg.backgroundUrl && bgs.includes(cfg.backgroundUrl)) el("bgSelect").value = cfg.backgroundUrl;
+  else el("bgSelect").value = bgs[0] || "assets/backgrounds/default.jpg";
+
+  function renderCats(){
+    const list = el("catList");
+    list.innerHTML = "";
+
+    cfg.cats.forEach((name, idx)=>{
+      const t = cfg.themeMap[name] || getCatTheme(name);
+
+      const div = document.createElement("div");
+      div.className = "catItem";
+      div.innerHTML = `
+        <div class="row2" style="justify-content:space-between;">
+          <b>${name}</b>
+          <button class="btn" data-del="${idx}"><span class="danger">刪除</span></button>
+        </div>
+
+        <div class="row2" style="margin-top:10px;">
+          <div style="flex:1 1 150px;">
+            <label>底色</label>
+            <input type="color" data-k="bg" data-i="${idx}" value="${toHex(t.bg) || "#f1f1f1"}"/>
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>字色</label>
+            <input type="color" data-k="fg" data-i="${idx}" value="${toHex(t.fg) || "#111111"}"/>
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>邊框</label>
+            <input type="color" data-k="border" data-i="${idx}" value="${toHex(t.border) || "#cccccc"}"/>
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>膠帶</label>
+            <input type="color" data-k="tape" data-i="${idx}" value="${toHex(t.tape) || "#cccccc"}"/>
+          </div>
+        </div>
+
+        <div class="previewTag" style="background:${t.bg};color:${t.fg};border:1px solid ${t.border};">
+          預覽：${name}
+        </div>
+      `;
+      list.appendChild(div);
+    });
+
+    list.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.onclick = ()=>{
+        const i = Number(btn.getAttribute("data-del"));
+        const name = cfg.cats[i];
+        if(!confirm(`確定刪除「${name}」？`)) return;
+        cfg.cats.splice(i,1);
+        delete cfg.themeMap[name];
+        renderCats();
+      };
+    });
+
+    list.querySelectorAll("input[type=color]").forEach(inp=>{
+      inp.oninput = ()=>{
+        const i = Number(inp.getAttribute("data-i"));
+        const k = inp.getAttribute("data-k");
+        const name = cfg.cats[i];
+        if(!cfg.themeMap[name]) cfg.themeMap[name] = { bg:"", fg:"", border:"", tape:"" };
+        cfg.themeMap[name][k] = inp.value;
+        renderCats();
+      };
+    });
+  }
+
+  el("addCat").onclick = ()=>{
+    const v = (el("newCat").value || "").trim();
+    if(!v) return;
+    if(cfg.cats.includes(v)){
+      alert("這個對象已存在！");
+      return;
+    }
+    cfg.cats.push(v);
+    el("newCat").value = "";
+    renderCats();
+  };
+
+  el("bgSelect").onchange = async ()=>{
+    cfg.backgroundUrl = el("bgSelect").value;
+    await applyBackground("planner");
+  };
+
+  el("bgUpload").onchange = async (e)=>{
+    const f = (e.target.files || [])[0];
+    if(!f) return;
+    const dataUrl = await new Promise(res=>{
+      const r = new FileReader();
+      r.onload = ()=>res(String(r.result));
+      r.readAsDataURL(f);
+    });
+    cfg.backgroundUrl = dataUrl;
+    await applyBackground("planner");
+    alert("已上傳背景！記得按『儲存設定』");
+  };
+
+  el("musicUpload").onchange = async (e)=>{
+    const f = (e.target.files || [])[0];
+    if(!f) return;
+    const dataUrl = await new Promise(res=>{
+      const r = new FileReader();
+      r.onload = ()=>res(String(r.result));
+      r.readAsDataURL(f);
+    });
+    cfg.musicDataUrl = dataUrl;
+    alert("已上傳音樂！記得按『儲存設定』");
+  };
+
+  el("save").onclick = ()=>{
+    cfg.ownerName = (el("ownerName").value || "").trim();
+    cfg.siteTitle = (el("siteTitle").value || "").trim();
+    cfg.setupDone = true;
+    saveConfig(cfg);
+    alert("已儲存！");
+  };
+
+  el("reRunSetup").onclick = ()=>{
+    location.href = "setup.html";
+  };
+
+  el("wipeConfig").onclick = ()=>{
+    if(!confirm("確定清除設定？清除後下次會重新跑首次設定。")) return;
+    localStorage.removeItem("oshi_config_v1");
+    alert("已清除。將跳回首次設定。");
+    location.href = "setup.html";
+  };
+
+  function toHex(x){
+    if(!x) return "";
+    const s = String(x).trim();
+    if(s.startsWith("#")) return s.length===4 ? expand3(s) : s;
+    return "";
+  }
+  function expand3(h){
+    return "#" + h[1]+h[1]+h[2]+h[2]+h[3]+h[3];
+  }
+
+  renderCats();
+</script>
+</body>
+</html>
