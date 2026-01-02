@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>首次設定｜LDH追星存錢手帳</title>
+  <link rel="stylesheet" href="assets/app.css"/>
+  <style>
+    .wrap{max-width:920px;margin:0 auto;padding:20px 16px 44px;}
+    .paper{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 18px 34px rgba(0,0,0,.10), 0 2px 0 rgba(0,0,0,.03);
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .paper::after{
+      content:"";
+      position:absolute; top:-10px; right:18px;
+      width:110px; height:34px;
+      background:rgba(180,150,90,.25);
+      border:1px solid rgba(180,150,90,.30);
+      border-radius:10px;
+      transform:rotate(7deg);
+      box-shadow:0 10px 18px rgba(0,0,0,.10);
+      -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      opacity:.95;
+      pointer-events:none;
+    }
+    h1{margin:0 0 10px;font-size:20px;}
+    .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px;}
+    @media(min-width:900px){.grid{grid-template-columns: 1.2fr .8fr;}}
+    .card2{border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;}
+    .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .catList{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+    .catItem{border:1px solid var(--line);border-radius:16px;background:rgba(250,249,246,.92);padding:12px;}
+    .catHead{display:flex;justify-content:space-between;gap:10px;align-items:center;}
+    .mini{font-size:12px;color:var(--muted);}
+    .previewTag{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;border:1px solid transparent;
+      font-weight:900;font-size:12px;
+      margin-top:10px;
+      width:fit-content;
+    }
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  </style>
+</head>
+<body>
+  <div class="bg-wrap"></div>
+
+<header>
+  <h1 id="title">首次設定</h1>
+  <div class="sub">只會在第一次使用前跳出；之後可在「設定」更改。</div>
+</header>
+
+<div class="wrap">
+  <div class="paper">
+    <div class="grid">
+
+      <div class="card2">
+        <h2 style="margin:0 0 10px;font-size:15px;">① 手帳名稱</h2>
+        <label>你的名字（可不填）</label>
+        <input id="ownerName" type="text" placeholder="例：小美" />
+        <div class="hint">不填也可以，名稱會用「LDH追星存錢手帳」。</div>
+
+        <label style="margin-top:10px;">自訂手帳名稱（可留空）</label>
+        <input id="siteTitle" type="text" placeholder="例：小美的LDH追星存錢手帳" />
+        <div class="hint">若留空，會自動用「你的名字＋的LDH追星存錢手帳」。</div>
+
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+
+        <h2 style="margin:0 0 10px;font-size:15px;">② 存款對象與顏色</h2>
+
+        <div class="row2">
+          <input id="newCat" type="text" placeholder="新增對象（例：EXILE THE SECOND）" style="flex:1 1 240px;">
+          <button class="btn" id="addCat">＋新增</button>
+        </div>
+
+        <div class="catList" id="catList"></div>
+        <div class="hint">顏色會套用到：月曆的對象標籤、事件頁膠帶與標籤。</div>
+      </div>
+
+      <div class="card2">
+        <h2 style="margin:0 0 10px;font-size:15px;">③ 初始背景</h2>
+        <label>選擇背景</label>
+        <select id="bgSelect"></select>
+        <div class="hint">你可以提供同擔「固定初始背景」：放在 repo 的 <code>assets/backgrounds/default.jpg</code>。</div>
+
+        <label style="margin-top:10px;">或上傳自己的背景（之後也能改）</label>
+        <input id="bgUpload" type="file" accept="image/*"/>
+
+        <div class="hint">上傳會存進瀏覽器（localStorage）。如果清除瀏覽資料，背景也會消失（可再上傳）。</div>
+
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+
+        <h2 style="margin:0 0 10px;font-size:15px;">完成</h2>
+        <div class="btnRow">
+          <button class="btn primary" id="save">✅ 儲存並開始使用</button>
+          <button class="btn" id="reset">重設為預設值</button>
+        </div>
+        <div class="hint">儲存後會回到首頁。</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    DEFAULT_CATS, getBuiltInBackgrounds,
+    getConfig, saveConfig, applyBackground, getCatTheme
+  } from "./assets/app.js";
+
+  await applyBackground("planner");
+
+  const el = (id)=>document.getElementById(id);
+
+  // 初始 config（若已有 config 就載入，讓人可以重新跑 setup）
+  const cfg = getConfig() || {
+    setupDone: false,
+    ownerName: "",
+    siteTitle: "",
+    cats: DEFAULT_CATS.slice(),
+    themeMap: {},
+    backgroundUrl: "",   // 可是 dataURL 或 內建路徑
+    musicDataUrl: "",    // 之後設定頁再做也行
+  };
+
+  el("ownerName").value = cfg.ownerName || "";
+  el("siteTitle").value = cfg.siteTitle || "";
+
+  // 背景選單
+  const bgs = getBuiltInBackgrounds().filter(Boolean);
+  el("bgSelect").innerHTML = bgs.map(u=>`<option value="${u}">${u}</option>`).join("");
+  if (cfg.backgroundUrl && bgs.includes(cfg.backgroundUrl)) el("bgSelect").value = cfg.backgroundUrl;
+  else el("bgSelect").value = bgs[0] || "assets/backgrounds/default.jpg";
+
+  // 對象列表
+  function renderCats(){
+    const list = el("catList");
+    list.innerHTML = "";
+
+    cfg.cats.forEach((name, idx)=>{
+      const t = cfg.themeMap[name] || getCatTheme(name);
+
+      const div = document.createElement("div");
+      div.className = "catItem";
+      div.innerHTML = `
+        <div class="catHead">
+          <b>${name}</b>
+          <button class="btn" data-del="${idx}"><span style="color:#b42318">刪除</span></button>
+        </div>
+
+        <div class="row2" style="margin-top:10px;">
+          <div style="flex:1 1 150px;">
+            <label>底色</label>
+            <input type="color" data-k="bg" data-i="${idx}" value="${toHex(t.bg) || "#f1f1f1"}"/>
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>字色</label>
+            <input type="color" data-k="fg" data-i="${idx}" value="${toHex(t.fg) || "#111111"}"/>
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>邊框</label>
+            <input type="color" data-k="border" data-i="${idx}" value="${toHex(t.border) || "#cccccc"}"/>
+          </div>
+          <div style="flex:1 1 150px;">
+            <label>膠帶</label>
+            <input type="color" data-k="tape" data-i="${idx}" value="${toHex(t.tape) || "#cccccc"}"/>
+          </div>
+        </div>
+
+        <div class="previewTag" style="background:${t.bg};color:${t.fg};border:1px solid ${t.border};">
+          預覽：${name}
+        </div>
+        <div class="mini">提示：你選的顏色會套到月曆標籤、事件頁膠帶。</div>
+      `;
+      list.appendChild(div);
+    });
+
+    // 刪除
+    list.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.onclick = ()=>{
+        const i = Number(btn.getAttribute("data-del"));
+        const name = cfg.cats[i];
+        if(!confirm(`確定刪除「${name}」？`)) return;
+        cfg.cats.splice(i,1);
+        delete cfg.themeMap[name];
+        renderCats();
+      };
+    });
+
+    // 改顏色
+    list.querySelectorAll("input[type=color]").forEach(inp=>{
+      inp.oninput = ()=>{
+        const i = Number(inp.getAttribute("data-i"));
+        const k = inp.getAttribute("data-k");
+        const name = cfg.cats[i];
+        if(!cfg.themeMap[name]) cfg.themeMap[name] = { bg:"", fg:"", border:"", tape:"" };
+        cfg.themeMap[name][k] = inp.value;
+        renderCats();
+      };
+    });
+  }
+
+  // 新增對象
+  el("addCat").onclick = ()=>{
+    const v = (el("newCat").value || "").trim();
+    if(!v) return;
+    if(cfg.cats.includes(v)){
+      alert("這個對象已存在！");
+      return;
+    }
+    cfg.cats.push(v);
+    el("newCat").value = "";
+    renderCats();
+  };
+
+  // 背景上傳（存 dataURL）
+  el("bgUpload").onchange = async (e)=>{
+    const f = (e.target.files || [])[0];
+    if(!f) return;
+    const dataUrl = await new Promise(res=>{
+      const r = new FileReader();
+      r.onload = ()=>res(String(r.result));
+      r.readAsDataURL(f);
+    });
+    cfg.backgroundUrl = dataUrl;
+    await applyBackground("planner");
+    alert("已上傳背景！記得按『儲存並開始使用』");
+  };
+
+  // 背景選單：用內建路徑
+  el("bgSelect").onchange = async ()=>{
+    cfg.backgroundUrl = el("bgSelect").value;
+    await applyBackground("planner");
+  };
+
+  // 儲存
+  el("save").onclick = ()=>{
+    cfg.ownerName = (el("ownerName").value || "").trim();
+    cfg.siteTitle = (el("siteTitle").value || "").trim();
+    cfg.setupDone = true;
+
+    // themeMap 若是 #hex，保留即可（app.js 會直接用）
+    saveConfig(cfg);
+    location.href = "index.html";
+  };
+
+  // 重設
+  el("reset").onclick = async ()=>{
+    if(!confirm("確定重設為預設值？")) return;
+    cfg.setupDone = false;
+    cfg.ownerName = "";
+    cfg.siteTitle = "";
+    cfg.cats = DEFAULT_CATS.slice();
+    cfg.themeMap = {};
+    cfg.backgroundUrl = "assets/backgrounds/default.jpg";
+    renderCats();
+    await applyBackground("planner");
+    el("ownerName").value = "";
+    el("siteTitle").value = "";
+    el("bgSelect").value = "assets/backgrounds/default.jpg";
+    el("bgUpload").value = "";
+  };
+
+  // 將 rgba / hex 轉成 color input 可用 hex（簡化：若原本是 rgba 就給預設）
+  function toHex(x){
+    if(!x) return "";
+    const s = String(x).trim();
+    if(s.startsWith("#")) return s.length===4 ? expand3(s) : s;
+    // 其他格式（rgba）就不轉，回傳空，讓 UI 用預設色
+    return "";
+  }
+  function expand3(h){
+    return "#" + h[1]+h[1]+h[2]+h[2]+h[3]+h[3];
+  }
+
+  renderCats();
+</script>
+</body>
+</html>
