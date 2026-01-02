@@ -44,6 +44,25 @@
     .rewardBox img{width:100%; display:block;}
     .rewardBar{display:flex; justify-content:space-between; align-items:center; padding:10px 12px;}
     .rewardBar b{font-size:13px;}
+    /* === 手帳亮色日：有存錢的日期 === */
+.cell.has-money{
+  background: #ffffff;               /* 亮紙色 */
+  border-color: #e6e2d9;
+  box-shadow:
+    0 10px 22px rgba(0,0,0,.08),
+    0 2px 0 rgba(0,0,0,.03);
+}
+
+/* 讓金額更顯眼 */
+.cell.has-money .sum{
+  color: #2b2b2b;
+}
+
+/* 沒存錢的日子再淡一點 */
+.cell.no-money{
+  background: rgba(255,255,255,.65);
+}
+
   </style>
 </head>
 <body>
@@ -327,3 +346,4 @@
 </script>
 </body>
 </html>
+
