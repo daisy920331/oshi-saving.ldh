@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>追星存錢｜首頁</title>
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <div class="bg-wrap"></div>
+
+  <header>
+    <h1>追星存錢網站（首頁）</h1>
+    <p class="sub">入口：月曆 / 事件統整 / 素材管理（不用改程式碼）</p>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2 style="margin:0 0 8px; font-size:15px;">功能入口</h2>
+
+      <div class="row" style="margin-top:10px;">
+        <a class="btn primary" href="calendar.html">📅 月曆版存錢區</a>
+        <a class="btn primary" href="events.html">📊 不同事件統整區</a>
+        <a class="btn" href="settings.html">🧰 素材管理（不用改程式碼）</a>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <span class="pill">本月合計：<b id="monthTotal">0</b> 元</span>
+        <span class="pill">Streak：<b id="streak">0</b> 天</span>
+        <span class="pill">今日：<b id="today">-</b></span>
+      </div>
+
+      <p class="hint">Streak = 從今天往回連續幾天都有存錢（當天累計 > 0 算打卡）。</p>
+    </section>
+
+    <aside class="card">
+      <h2 style="margin:0 0 8px; font-size:15px;">外觀與音樂</h2>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="btn" id="bgPrev">🖼 上一張背景</button>
+        <button class="btn" id="bgNext">🖼 下一張背景</button>
+      </div>
+
+      <label>背景透明度</label>
+      <input id="bgOpacity" type="range" min="0.15" max="0.95" step="0.05" />
+
+      <div class="row" style="margin-top:10px;">
+        <button class="btn good" id="musicToggle">🎵 音樂：關</button>
+        <span class="pill">提示：先去 settings 設 repo</span>
+      </div>
+
+      <audio id="bgm" controls style="width:100%; margin-top:10px; display:none;"></audio>
+      <p class="hint">手機上音樂可能要你先點一下按鈕/播放器才會播放，這是瀏覽器限制。</p>
+    </aside>
+  </main>
+
+  <script type="module">
+    import {
+      getUI, saveUI, applyBackground, setupBGM,
+      loadData, monthSum, computeStreak, ymd
+    } from "./assets/app.js";
+
+    const bgOpacity = document.getElementById("bgOpacity");
+    const musicToggle = document.getElementById("musicToggle");
+    const audio = document.getElementById("bgm");
+
+    function syncKPI(){
+      const data = loadData();
+      const now = new Date();
+      const todayKey = ymd(now);
+      document.getElementById("today").textContent = todayKey;
+
+      const mTotal = monthSum(data, now.getFullYear(), now.getMonth(), "");
+      document.getElementById("monthTotal").textContent = String(mTotal);
+
+      const streak = computeStreak(data, todayKey, "");
+      document.getElementById("streak").textContent = String(streak);
+    }
+
+    async function syncUI(){
+      const ui = getUI();
+      await applyBackground("home");
+      bgOpacity.value = String(ui.bgOpacity ?? 0.55);
+      musicToggle.textContent = `🎵 音樂：${ui.musicOn ? "開" : "關"}`;
+      audio.style.display = ui.musicOn ? "block" : "none";
+      await setupBGM(audio);
+    }
+
+    document.getElementById("bgPrev").addEventListener("click", async ()=>{
+      const ui = getUI();
+      ui.bgIndexHome = (ui.bgIndexHome - 1);
+      saveUI(ui);
+      await syncUI();
+    });
+    document.getElementById("bgNext").addEventListener("click", async ()=>{
+      const ui = getUI();
+      ui.bgIndexHome = (ui.bgIndexHome + 1);
+      saveUI(ui);
+      await syncUI();
+    });
+
+    bgOpacity.addEventListener("input", async ()=>{
+      const ui = getUI();
+      ui.bgOpacity = Number(bgOpacity.value);
+      saveUI(ui);
+      await applyBackground("home");
+    });
+
+    musicToggle.addEventListener("click", async ()=>{
+      const ui = getUI();
+      ui.musicOn = !ui.musicOn;
+      saveUI(ui);
+      await syncUI();
+
+      if(ui.musicOn){
+        try{ await audio.play(); } catch { audio.controls = true; }
+      }else{
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    });
+
+    await syncUI();
+    syncKPI();
+    window.addEventListener("focus", ()=>{ syncKPI(); });
+  </script>
+</body>
+</html>
