@@ -3,10 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>追星存錢手帳</title>
+  <title>LDH追星存錢手帳</title>
+
+  <!-- 芫荽（Iansui） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Iansui&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="assets/app.css" />
+
   <style>
+    header h1{
+      text-align:center;
+      width:100%;
+      font-family: "Iansui", system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+      letter-spacing:.5px;
+      margin:14px 0 6px;
+    }
+    header .sub{justify-content:center}
+
     .home-main{max-width:980px;margin:0 auto;padding:26px 16px 40px;}
+
     .home-actions{
       display:grid;
       grid-template-columns: 1fr;
@@ -30,7 +47,6 @@
     .home-actions .icon{font-size:40px;}
     .home-actions .desc{font-size:12px;color:var(--muted);}
 
-    /* 底部小工具列 */
     .home-footer{
       margin-top:26px;
       border-top:1px solid var(--line);
@@ -47,8 +63,8 @@
   <div class="bg-wrap"></div>
 
 <header>
-  <h1>追星存錢手帳</h1>
-  <a class="mini-link" href="settings.html">素材庫</a>
+  <h1>LDH追星存錢手帳</h1>
+  <div class="sub"><a href="settings.html">素材庫</a></div>
 </header>
 
 <main class="home-main">
@@ -61,8 +77,8 @@
   <div class="home-actions">
     <a class="btn primary" href="calendar.html">
       <div class="icon">📅</div>
-      <div>存錢月曆</div>
-      <div class="desc">存錢亮起來＋貼紙</div>
+      <div>存錢</div>
+      <div class="desc">存錢日亮起來＋貼紙</div>
     </a>
 
     <a class="btn primary" href="expense.html">
@@ -74,7 +90,7 @@
     <a class="btn primary" href="events.html">
       <div class="icon">📊</div>
       <div>事件</div>
-      <div class="desc">依事件回顧明細</div>
+      <div class="desc">存錢/花費都能回顧</div>
     </a>
   </div>
 
@@ -102,7 +118,6 @@
     loadData, monthSum, computeStreak, ymd, pad
   } from "./assets/app.js";
 
-  // 花費資料 key（expense.html 也要用同一個）
   const EXP_KEY = "oshi_expenses_v1";
   function loadExpenses(){
     const raw = localStorage.getItem(EXP_KEY);
