@@ -221,7 +221,7 @@
   import { guardSetup } from "./assets/app.js";
 guardSetup();
 
-  import { CATS, ymd, ymLabel, applyBackground } from "./assets/app.js";
+  import { getCats, ymd, ymLabel, applyBackground } from "./assets/app.js";
   await applyBackground("planner");
 
   // ===== storage keys =====
@@ -510,9 +510,19 @@ guardSetup();
   function openDay(dateKey){
     pickedDate = dateKey;
     el("pickedDate").textContent = pickedDate;
+    renderCats();
+    window.addEventListener("pageshow", () => {
+  renderCats();
+});
+
+  ...
+  }
 
     // 對象
-    el("cat").innerHTML = CATS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  function renderCats(){
+    const cats = getCats();
+    el("cat").innerHTML = cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+}
 
     // 原因選單
     el("reasonSel").innerHTML = REASONS.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join("");
