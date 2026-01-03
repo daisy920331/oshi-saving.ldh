@@ -1,241 +1,151 @@
 // assets/app.js
-// ===== core storage =====
-const DATA_KEY = "oshi_savings_v1";
-const UI_KEY = "oshi_ui_v1";
-const CONFIG_KEY = "oshi_config_v1";
+// ====== Config ======
+export const CONFIG_KEY = "oshi_config_v1";
 
-// ===== defaults =====
-export const DEFAULT_CATS = ["Shokichi", "Akira", "團體"];
+// 新增：自訂背景庫（多張）
+const BG_LIBRARY_KEY = "oshi_bg_library_v1"; // array of {id,name,dataUrl,addedAt}
 
-// 顏色：你之前指定的三色（可在設定頁改）
-const DEFAULT_THEME_MAP = {
-  "Shokichi": { bg: "rgba(226, 88, 34, .14)", fg: "#c2410c", border: "rgba(226, 88, 34, .35)", tape: "rgba(226, 88, 34, .35)" },
-  "Akira":    { bg: "rgba(32, 32, 32, .08)", fg: "#1f1f1f", border: "rgba(180,150,90,.55)", tape: "rgba(40,40,40,.30)" },
-  "團體":     { bg: "rgba(34, 139, 34, .14)", fg: "#166534", border: "rgba(34, 139, 34, .35)", tape: "rgba(34, 139, 34, .32)" },
-};
+export const DEFAULT_CATS = ["SHOKICHI", "AKIRA", "團體"];
 
-// 你提供給同擔的「固定初始背景」：放 repo 裡
-const DEFAULT_BG_URL = "assets/backgrounds/default.jpg";
-
-// ===== utils =====
-export const pad = (n) => String(n).padStart(2, "0");
-
-export function ymd(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-export function ymLabel(y, m0) {
-  return `${y}-${pad(m0 + 1)}`;
-}
-
-export function loadData() {
-  const raw = localStorage.getItem(DATA_KEY);
-  if (!raw) return { rules: {}, records: {} };
-  try {
-    const x = JSON.parse(raw);
-    return x && x.records ? x : { rules: {}, records: {} };
-  } catch {
-    return { rules: {}, records: {} };
+export function getConfig(){
+  try{
+    const raw = localStorage.getItem(CONFIG_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){
+    return null;
   }
 }
-export function saveData(x) {
-  localStorage.setItem(DATA_KEY, JSON.stringify(x));
+
+export function saveConfig(cfg){
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg || {}));
 }
 
-// ===== config (site-wide settings) =====
-export function getConfig() {
-  const raw = localStorage.getItem(CONFIG_KEY);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
-export function saveConfig(cfg) {
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
-}
-export function isConfigured() {
-  const cfg = getConfig();
-  return !!(cfg && cfg.setupDone);
-}
-
-export function getSiteTitle() {
-  const cfg = getConfig();
-  // 例：小美的LDH追星存錢手帳
-  if (cfg?.siteTitle && String(cfg.siteTitle).trim()) return String(cfg.siteTitle).trim();
-  if (cfg?.ownerName && String(cfg.ownerName).trim()) return `${String(cfg.ownerName).trim()}的LDH追星存錢手帳`;
-  return "LDH追星存錢手帳";
-}
-
-export function getCats() {
-  const cfg = getConfig();
-  const cats = cfg?.cats;
-  if (Array.isArray(cats) && cats.filter(Boolean).length) return cats.map(String);
-  return DEFAULT_CATS.slice();
-}
-
-export function getThemeMap() {
-  const cfg = getConfig();
-  const m = (cfg && cfg.themeMap && typeof cfg.themeMap === "object") ? cfg.themeMap : {};
-  // merge defaults + custom
-  return { ...DEFAULT_THEME_MAP, ...m };
-}
-
-export function getCatTheme(catName) {
-  const map = getThemeMap();
-  return map[catName] || { bg: "rgba(150,150,150,.10)", fg: "#111", border: "rgba(150,150,150,.25)", tape: "rgba(150,150,150,.25)" };
-}
-
-// 給 tag 用：inline style（不用再寫死 class）
-export function tagStyleAttr(catName) {
-  const t = getCatTheme(catName);
-  return `style="background:${t.bg};color:${t.fg};border-color:${t.border};"`;
-}
-
-// 給事件卡片右上角膠帶用（用 CSS 變數控制）
-export function tapeVarsAttr(catName) {
-  const t = getCatTheme(catName);
-  return `style="--tape:${t.tape};--tapeborder:${t.border};"`;
-}
-
-// ===== UI (background/music) =====
-export function getUI() {
-  const raw = localStorage.getItem(UI_KEY);
-  if (!raw) return {
-    bgOpacity: 0.25,
-    musicVolume: 0.6,
-    musicOn: false,
-    bgIndexHome: 0,
-    bgIndexPlanner: 0,
-  };
-  try {
-    const x = JSON.parse(raw);
-    return x && typeof x === "object" ? x : {
-      bgOpacity: 0.25,
-      musicVolume: 0.6,
-      musicOn: false,
-      bgIndexHome: 0,
-      bgIndexPlanner: 0,
+export function ensureConfig(){
+  let cfg = getConfig();
+  if(!cfg){
+    cfg = {
+      setupDone:false,
+      ownerName:"",
+      siteTitle:"",
+      cats: DEFAULT_CATS.slice(),
+      themeMap:{},
+      backgroundUrl:"",
+      musicDataUrl:"",
     };
-  } catch {
-    return {
-      bgOpacity: 0.25,
-      musicVolume: 0.6,
-      musicOn: false,
-      bgIndexHome: 0,
-      bgIndexPlanner: 0,
-    };
+    saveConfig(cfg);
   }
-}
-export function saveUI(ui) {
-  localStorage.setItem(UI_KEY, JSON.stringify(ui));
+  return cfg;
 }
 
-// 內建背景清單：你可以放多張到 assets/backgrounds/，這裡先給基本
-export function getBuiltInBackgrounds() {
-  // 你可以自行加：bg2.jpg / bg3.jpg...
+// ====== Backgrounds ======
+export function getBuiltInBackgrounds(){
+  // 你原本的內建背景清單（依你的專案資產調整）
+  // 若你本來就有更多背景，直接在這裡加檔名即可
   return [
-    DEFAULT_BG_URL,
-    "assets/backgrounds/bg2.jpg",
-    "assets/backgrounds/bg3.jpg",
+    "assets/backgrounds/default.jpg",
+    "assets/backgrounds/planner1.jpg",
+    "assets/backgrounds/planner2.jpg",
+    "assets/backgrounds/planner3.jpg",
   ];
 }
 
-// 背景來源：優先用 config 的 initialBg（第一次設定選的）
-export function getActiveBackgroundUrl(scope = "planner") {
-  const cfg = getConfig();
-  const ui = getUI();
-  const list = getBuiltInBackgrounds().filter(Boolean);
-
-  const idx = (scope === "home") ? (ui.bgIndexHome ?? 0) : (ui.bgIndexPlanner ?? 0);
-  const picked = list.length ? list[((idx % list.length) + list.length) % list.length] : DEFAULT_BG_URL;
-
-  // 如果使用者設定了「初始背景」或後來在設定頁換了背景，也可以覆蓋
-  const custom = cfg?.backgroundUrl;
-  return custom || picked || DEFAULT_BG_URL;
-}
-
-export async function applyBackground(scope = "planner") {
-  const ui = getUI();
-  const bgUrl = getActiveBackgroundUrl(scope);
-
-  const wrap = document.querySelector(".bg-wrap");
-  if (!wrap) return;
-
-  wrap.style.opacity = String(ui.bgOpacity ?? 0.25);
-  wrap.style.backgroundImage = `url("${bgUrl}")`;
-  wrap.style.backgroundSize = "cover";
-  wrap.style.backgroundPosition = "center";
-  wrap.style.backgroundAttachment = "fixed";
-}
-
-// ===== music =====
-export async function setupBGM(audioEl) {
-  const cfg = getConfig();
-  const ui = getUI();
-  if (!audioEl) return;
-
-  // 允許使用者在設定頁上傳一首音樂（存 dataURL）
-  const src = cfg?.musicDataUrl || "";
-  if (src) audioEl.src = src;
-
-  audioEl.volume = Number(ui.musicVolume ?? 0.6);
-}
-
-// ===== stats =====
-export function monthSum(data, y, m0, catFilter = "") {
-  const prefix = `${y}-${pad(m0 + 1)}-`;
-  let s = 0;
-  for (const k of Object.keys(data.records || {})) {
-    if (!k.startsWith(prefix)) continue;
-    const arr = data.records[k] || [];
-    for (const r of arr) {
-      if (catFilter && (r.cat || "") !== catFilter) continue;
-      s += Number(r.amount) || 0;
-    }
+// === 新增：自訂背景庫 CRUD ===
+export function getCustomBackgrounds(){
+  try{
+    const raw = localStorage.getItem(BG_LIBRARY_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){
+    return [];
   }
-  return s;
 }
 
-export function computeStreak(data, todayKey, catFilter = "") {
-  // streak = 往回連續有紀錄的天數
-  let streak = 0;
-  let d = new Date(todayKey);
-  while (true) {
-    const key = ymd(d);
-    const arr = (data.records && data.records[key]) ? data.records[key] : [];
-    const ok = arr.some(r => !catFilter || (r.cat || "") === catFilter);
-    if (!ok) break;
-    streak += 1;
-    d.setDate(d.getDate() - 1);
+function saveCustomBackgrounds(arr){
+  localStorage.setItem(BG_LIBRARY_KEY, JSON.stringify(arr || []));
+}
+
+function uid(){
+  return "bg_" + Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
+}
+
+export async function addCustomBackgroundFiles(fileList){
+  const files = Array.from(fileList || []).filter(Boolean);
+  if(!files.length) return getCustomBackgrounds();
+
+  const current = getCustomBackgrounds();
+
+  for(const f of files){
+    // 只接受圖片
+    if(!f.type || !f.type.startsWith("image/")) continue;
+
+    const dataUrl = await readFileAsDataURL(f);
+    current.push({
+      id: uid(),
+      name: f.name || "background",
+      dataUrl,
+      addedAt: Date.now()
+    });
   }
-  return streak;
+
+  saveCustomBackgrounds(current);
+  return current;
 }
 
-// ===== reward image picker =====
-// 你原本做法：讓使用者每次新增紀錄時從素材庫挑一張鼓勵圖（通常在 settings.html 管理）
-// 這裡保留一個簡單版本：從 localStorage 的 reward pool 隨機挑
-const REWARD_POOL_KEY = "oshi_reward_pool_v1";
-
-export function loadRewardPool() {
-  try { return JSON.parse(localStorage.getItem(REWARD_POOL_KEY) || "[]") || []; }
-  catch { return []; }
-}
-export function saveRewardPool(arr) {
-  localStorage.setItem(REWARD_POOL_KEY, JSON.stringify(arr || []));
+export function deleteCustomBackground(id){
+  const current = getCustomBackgrounds();
+  const next = current.filter(x => x.id !== id);
+  saveCustomBackgrounds(next);
+  return next;
 }
 
-export async function pickRewardImage() {
-  const pool = loadRewardPool();
-  if (!pool.length) return "";
-  // 先用隨機；你也可以改成彈出選擇
-  const i = Math.floor(Math.random() * pool.length);
-  return pool[i] || "";
+export function renameCustomBackground(id, newName){
+  const current = getCustomBackgrounds();
+  const item = current.find(x => x.id === id);
+  if(item) item.name = (newName || "").trim() || item.name;
+  saveCustomBackgrounds(current);
+  return current;
 }
 
-// ===== first-run guard =====
-export function guardSetup() {
-  // 只有在 setup.html 不做導頁
-  const path = location.pathname.toLowerCase();
-  if (path.endsWith("/setup.html") || path.endsWith("setup.html")) return;
+export function getAllBackgroundOptions(){
+  const builtIn = getBuiltInBackgrounds().map(u => ({ type:"builtIn", value:u, label:u }));
+  const custom = getCustomBackgrounds().map(x => ({
+    type:"custom",
+    value:x.dataUrl,
+    label:`🖼️ ${x.name}`,
+    id:x.id
+  }));
+  return [...custom, ...builtIn]; // 讓你上傳的在最上面
+}
 
-  if (!isConfigured()) {
-    location.href = "setup.html";
+export async function applyBackground(_theme="planner"){
+  const cfg = ensureConfig();
+  const url = cfg.backgroundUrl || getBuiltInBackgrounds()[0] || "";
+  const bg = document.querySelector(".bg-wrap");
+  if(bg){
+    bg.style.backgroundImage = url ? `url("${url}")` : "none";
+    bg.style.backgroundSize = "cover";
+    bg.style.backgroundPosition = "center";
+    bg.style.backgroundRepeat = "no-repeat";
+    bg.style.filter = "saturate(1.02)";
   }
+}
+
+// ====== Theme helpers (你原本用到的) ======
+export function getCatTheme(name){
+  // 預設顏色（你原本的分類色也可以放在這裡；保留簡單 fallback）
+  const s = String(name || "").toLowerCase();
+  if(s.includes("shokichi")) return { bg:"#ffefe8", fg:"#7a2b18", border:"#ffb7a0", tape:"#ff7b52" };
+  if(s.includes("akira")) return { bg:"#f1f0ee", fg:"#141414", border:"#c9b06a", tape:"#c9b06a" };
+  if(s.includes("團體") || s.includes("group")) return { bg:"#ecf5ef", fg:"#17422a", border:"#83b69a", tape:"#2e7d52" };
+  return { bg:"#f5f5f5", fg:"#111111", border:"#cccccc", tape:"#cccccc" };
+}
+
+// ====== Utils ======
+function readFileAsDataURL(file){
+  return new Promise((resolve, reject)=>{
+    const r = new FileReader();
+    r.onload = ()=>resolve(String(r.result));
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
 }
