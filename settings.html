@@ -60,6 +60,8 @@
     }
     .poolItem small{color:var(--muted);}
     .poolActions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; justify-content:space-between;}
+    .modePill{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;}
+    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-weight:900;font-size:12px;}
   </style>
 </head>
 <body>
@@ -76,7 +78,7 @@
     <div class="card2">
       <h2 style="margin:0 0 10px;font-size:15px;">手帳名稱</h2>
       <label>你的名字</label>
-      <input id="ownerName" type="text" placeholder="例：小美(也可以不填)"/>
+      <input id="ownerName" type="text" placeholder="例：小美(可不填)"/>
       <label style="margin-top:10px;">自訂手帳名稱（可留空）</label>
       <input id="siteTitle" type="text" placeholder="例：小美的LDH追星存錢手帳"/>
       <div class="hint">留空會用「你的名字＋的LDH追星存錢手帳」。</div>
@@ -85,14 +87,32 @@
     <div class="card2">
       <h2 style="margin:0 0 10px;font-size:15px;">對象與顏色</h2>
 
-      <!-- ✅ 候選池（團體/個人） -->
       <div class="poolBox">
         <b>從名單加入（可勾選多個）</b>
-        <div class="hint">切換「團體 / 個人」，搜尋後勾選，按「加入已選」。</div>
+        <div class="hint">切換「團體 / 個人」，再選擇顯示方式（完整/簡稱；英文/漢字）。</div>
 
         <div class="tabRow" style="margin-top:10px;">
           <button class="tabBtn on" id="tabGroups">團體</button>
           <button class="tabBtn" id="tabPeople">個人</button>
+        </div>
+
+        <!-- 顯示方式切換 -->
+        <div class="modePill">
+          <label class="pill" id="groupModePill">
+            團體顯示：
+            <select id="groupNameMode">
+              <option value="full">完整名</option>
+              <option value="short">簡稱（若有）</option>
+            </select>
+          </label>
+
+          <label class="pill" id="peopleModePill" style="display:none;">
+            個人顯示：
+            <select id="peopleNameMode">
+              <option value="roman">英文字名</option>
+              <option value="kanji">漢字名（若有）</option>
+            </select>
+          </label>
         </div>
 
         <div class="row2" style="margin-top:10px;">
@@ -110,7 +130,7 @@
       </div>
 
       <div class="row2" style="margin-top:12px;">
-        <input id="newCat" type="text" placeholder="手動新增對象（例：EXILE THE SECOND）" style="flex:1 1 240px;">
+        <input id="newCat" type="text" placeholder="手動新增對象" style="flex:1 1 240px;">
         <button class="btn" id="addCat">＋新增</button>
       </div>
 
@@ -139,7 +159,7 @@
       <button class="btn" id="reRunSetup">重新跑首次設定</button>
       <button class="btn" id="wipeConfig"><span class="danger">清除設定</span></button>
     </div>
-    <div class="hint">儲存後，回到月曆/事件頁就會套用新對象與顏色。</div>
+    <div class="hint">儲存後，月曆/事件頁會套用新對象與顏色。</div>
   </div>
 </div>
 
@@ -150,14 +170,13 @@
   import { PRESET_GROUPS, PRESET_PEOPLE } from "./assets/presets.js";
 
   await applyBackground("planner");
-
   const el = (id)=>document.getElementById(id);
 
   const cfg = getConfig() || {
     setupDone: true,
     ownerName: "",
     siteTitle: "",
-    cats: ["Shokichi","Akira","團體"],
+    cats: [],
     themeMap: {},
     backgroundUrl: "",
     musicDataUrl: ""
@@ -166,29 +185,53 @@
   el("ownerName").value = cfg.ownerName || "";
   el("siteTitle").value = cfg.siteTitle || "";
 
+  // 背景選單
   const bgs = getBuiltInBackgrounds().filter(Boolean);
   el("bgSelect").innerHTML = bgs.map(u=>`<option value="${u}">${u}</option>`).join("");
-  if (cfg.backgroundUrl && bgs.includes(cfg.backgroundUrl)) el("bgSelect").value = cfg.backgroundUrl;
-  else el("bgSelect").value = bgs[0] || "assets/backgrounds/default.jpg";
+  el("bgSelect").value = (cfg.backgroundUrl && bgs.includes(cfg.backgroundUrl)) ? cfg.backgroundUrl : (bgs[0] || "assets/backgrounds/default.jpg");
 
   // ===== 候選池（團體/個人） =====
-  let poolMode = "groups";
+  let poolMode = "groups"; // groups | people
 
-  function getPool(){
+  function getDisplayNameFromGroup(g){
+    const mode = el("groupNameMode").value; // full | short
+    if(mode === "short" && g.short) return g.short;
+    return g.full;
+  }
+  function getDisplayNameFromPerson(p){
+    const mode = el("peopleNameMode").value; // roman | kanji
+    if(mode === "kanji" && p.kanji) return p.kanji;
+    return p.roman;
+  }
+
+  function poolItems(){
     const q = (el("poolSearch").value || "").trim().toLowerCase();
-    const list = (poolMode === "groups" ? PRESET_GROUPS : PRESET_PEOPLE).slice();
+    let list = [];
+    if(poolMode === "groups"){
+      list = PRESET_GROUPS.map(g=>({
+        key: g.full,
+        text: getDisplayNameFromGroup(g),
+        meta: g.short ? `可用簡稱：${g.short}` : "團體",
+      }));
+    }else{
+      list = PRESET_PEOPLE.map(p=>({
+        key: p.roman + (p.kanji ? `|${p.kanji}` : ""),
+        text: getDisplayNameFromPerson(p),
+        meta: p.kanji ? `可切換：${p.roman} / ${p.kanji}` : "個人",
+      }));
+    }
     if(!q) return list;
-    return list.filter(x => String(x).toLowerCase().includes(q));
+    return list.filter(x => (x.text + " " + x.meta).toLowerCase().includes(q));
   }
 
   function renderPool(){
-    const list = getPool();
-    el("poolList").innerHTML = list.map((name)=>`
+    const list = poolItems();
+    el("poolList").innerHTML = list.map(x=>`
       <label class="poolItem">
-        <input type="checkbox" data-name="${escapeHtml(name)}">
+        <input type="checkbox" data-text="${escapeHtml(x.text)}">
         <div style="display:flex;flex-direction:column;gap:2px;">
-          <b>${escapeHtml(name)}</b>
-          <small>${poolMode === "groups" ? "團體" : "個人"}</small>
+          <b>${escapeHtml(x.text)}</b>
+          <small>${escapeHtml(x.meta)}</small>
         </div>
       </label>
     `).join("");
@@ -204,22 +247,28 @@
     el("poolCount").textContent = `已選 ${n}`;
   }
 
-  el("tabGroups").onclick = ()=>{
-    poolMode = "groups";
-    el("tabGroups").classList.add("on");
-    el("tabPeople").classList.remove("on");
+  function setMode(mode){
+    poolMode = mode;
+    if(mode === "groups"){
+      el("tabGroups").classList.add("on");
+      el("tabPeople").classList.remove("on");
+      el("groupModePill").style.display = "";
+      el("peopleModePill").style.display = "none";
+    }else{
+      el("tabPeople").classList.add("on");
+      el("tabGroups").classList.remove("on");
+      el("groupModePill").style.display = "none";
+      el("peopleModePill").style.display = "";
+    }
     el("poolSearch").value = "";
     renderPool();
-  };
-  el("tabPeople").onclick = ()=>{
-    poolMode = "people";
-    el("tabPeople").classList.add("on");
-    el("tabGroups").classList.remove("on");
-    el("poolSearch").value = "";
-    renderPool();
-  };
+  }
 
+  el("tabGroups").onclick = ()=>setMode("groups");
+  el("tabPeople").onclick = ()=>setMode("people");
   el("poolSearch").oninput = renderPool;
+  el("groupNameMode").onchange = renderPool;
+  el("peopleNameMode").onchange = renderPool;
 
   el("poolCheckAll").onclick = ()=>{
     el("poolList").querySelectorAll("input[type=checkbox]").forEach(cb=>cb.checked = true);
@@ -232,7 +281,7 @@
 
   el("poolAddSelected").onclick = ()=>{
     const picked = Array.from(el("poolList").querySelectorAll("input[type=checkbox]:checked"))
-      .map(cb => cb.getAttribute("data-name"))
+      .map(cb => cb.getAttribute("data-text"))
       .filter(Boolean);
 
     if(!picked.length) return;
@@ -295,7 +344,7 @@
         const i = Number(btn.getAttribute("data-del"));
         const name = cfg.cats[i];
         if(!confirm(`確定刪除「${name}」？`)) return;
-        cfg.cats.splice(i,1);
+        cfg.cats.splice(i, 1);
         delete cfg.themeMap[name];
         renderCats();
       };
@@ -313,6 +362,7 @@
     });
   }
 
+  // 手動新增
   el("addCat").onclick = ()=>{
     const v = (el("newCat").value || "").trim();
     if(!v) return;
@@ -325,11 +375,13 @@
     renderCats();
   };
 
+  // 背景：內建選單
   el("bgSelect").onchange = async ()=>{
     cfg.backgroundUrl = el("bgSelect").value;
     await applyBackground("planner");
   };
 
+  // 背景：上傳
   el("bgUpload").onchange = async (e)=>{
     const f = (e.target.files || [])[0];
     if(!f) return;
@@ -343,6 +395,7 @@
     alert("已上傳背景！記得按『儲存設定』");
   };
 
+  // 音樂：上傳
   el("musicUpload").onchange = async (e)=>{
     const f = (e.target.files || [])[0];
     if(!f) return;
@@ -355,6 +408,7 @@
     alert("已上傳音樂！記得按『儲存設定』");
   };
 
+  // 儲存
   el("save").onclick = ()=>{
     cfg.ownerName = (el("ownerName").value || "").trim();
     cfg.siteTitle = (el("siteTitle").value || "").trim();
@@ -380,9 +434,7 @@
     if(s.startsWith("#")) return s.length===4 ? expand3(s) : s;
     return "";
   }
-  function expand3(h){
-    return "#" + h[1]+h[1]+h[2]+h[2]+h[3]+h[3];
-  }
+  function expand3(h){ return "#" + h[1]+h[1]+h[2]+h[2]+h[3]+h[3]; }
   function escapeHtml(s){
     return String(s||"")
       .replaceAll("&","&amp;")
@@ -392,7 +444,8 @@
       .replaceAll("'","&#39;");
   }
 
-  renderPool();
+  // init
+  setMode("groups");
   renderCats();
 </script>
 </body>
