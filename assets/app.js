@@ -17,14 +17,13 @@ export const BG_LIBRARY_KEY  = "oshi_bg_library_v1";  // 背景庫
 // =====================
 // Defaults
 // =====================
-export const DEFAULT_CATS = ["SHOKICHI", "AKIRA", "團體"];
-
-// 供 calendar / expense / events 直接用（使用者改設定後通常會刷新頁面，所以 OK）
-export const CATS = (() => {
-  const cfg = safeJSON(localStorage.getItem(CONFIG_KEY), null);
-  const arr = cfg?.cats;
-  return Array.isArray(arr) && arr.length ? arr : DEFAULT_CATS.slice();
-})();
+export function getCats(){
+  const cfg = ensureConfig();
+  if (Array.isArray(cfg.cats) && cfg.cats.length){
+    return cfg.cats.slice(); // 回傳副本，避免被誤改
+  }
+  return DEFAULT_CATS.slice();
+}
 
 // =====================
 // Small utils
