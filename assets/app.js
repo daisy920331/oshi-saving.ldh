@@ -1,9 +1,10 @@
 // assets/app.js
 // =========================================================
 // LDH追星存錢手帳 - app.js（整合完整版）
-// - 舊版首頁/日曆依賴函式：guardSetup/getSiteTitle/getUI/saveUI/setupBGM/loadData/saveData...
+// - 舊版依賴：guardSetup/getSiteTitle/getUI/saveUI/setupBGM/loadData/saveData...
 // - 新版：背景庫多張上傳、刪除、容量提示（navigator.storage.estimate）
 // - 修正背景顯示：配合 app.css 使用 .bg-wrap::before + --bg-image
+// - ✅ 新增：getCats()（即時讀設定的對象清單，避免月曆不同步）
 // =========================================================
 
 // =====================
@@ -17,11 +18,20 @@ export const BG_LIBRARY_KEY  = "oshi_bg_library_v1";  // 背景庫
 // =====================
 // Defaults
 // =====================
+export const DEFAULT_CATS = ["SHOKICHI", "AKIRA", "團體"];
+
+// ❌ DEPRECATED：請勿再用 CATS（它只會在載入時算一次，導致設定不同步）
+// 保留是為了不讓舊頁面立刻噴錯；你現在的月曆已改用 getCats()
+export const CATS = (() => {
+  const cfg = safeJSON(localStorage.getItem(CONFIG_KEY), null);
+  const arr = cfg?.cats;
+  return Array.isArray(arr) && arr.length ? arr : DEFAULT_CATS.slice();
+})();
+
+// ✅ 正確用法：每次都即時讀設定
 export function getCats(){
   const cfg = ensureConfig();
-  if (Array.isArray(cfg.cats) && cfg.cats.length){
-    return cfg.cats.slice(); // 回傳副本，避免被誤改
-  }
+  if(Array.isArray(cfg.cats) && cfg.cats.length) return cfg.cats.slice();
   return DEFAULT_CATS.slice();
 }
 
@@ -36,7 +46,6 @@ export function ymd(d){
 }
 
 export function ymLabel(y, m0){
-  // m0 = 0~11
   return `${y}-${pad(m0+1)}`;
 }
 
@@ -82,7 +91,7 @@ export function ensureConfig(){
     };
     saveConfig(cfg);
   }else{
-    // 補缺欄位（向前相容）
+    // 向前相容補欄位
     if(!Array.isArray(cfg.cats) || !cfg.cats.length) cfg.cats = DEFAULT_CATS.slice();
     if(!cfg.themeMap) cfg.themeMap = {};
     if(typeof cfg.backgroundUrl !== "string") cfg.backgroundUrl = "";
@@ -98,12 +107,9 @@ export function ensureConfig(){
 // =====================
 export function getUI(){
   const ui = safeJSON(localStorage.getItem(UI_KEY), {}) || {};
-  // defaults
   if(typeof ui.bgOpacity !== "number") ui.bgOpacity = 0.25;
   if(typeof ui.musicVolume !== "number") ui.musicVolume = 0.6;
   if(typeof ui.musicOn !== "boolean") ui.musicOn = true;
-
-  // 背景輪播 index（首頁按鈕用）
   if(typeof ui.bgIndexHome !== "number") ui.bgIndexHome = null; // null=用 config.backgroundUrl
   return ui;
 }
@@ -112,7 +118,6 @@ export function saveUI(ui){
   try{
     localStorage.setItem(UI_KEY, JSON.stringify(ui || {}));
   }catch(e){
-    // UI 不重要，失敗就不擋
     console.warn("saveUI failed", e);
   }
 }
@@ -137,7 +142,6 @@ export function getSiteTitle(){
 export function guardSetup(){
   const cfg = ensureConfig();
   if(!cfg.setupDone){
-    // 避免在 setup 頁自己跳自己
     const here = (location.pathname || "").toLowerCase();
     if(!here.endsWith("setup.html")){
       location.href = "setup.html";
@@ -162,13 +166,13 @@ export function getCatTheme(name){
 
   const s = String(name || "").toLowerCase();
   if(s.includes("shokichi")){
-    return { bg:"#ffefe8", fg:"#7a2b18", border:"#ffb7a0", tape:"#ff7b52" }; // 橘紅
+    return { bg:"#ffefe8", fg:"#7a2b18", border:"#ffb7a0", tape:"#ff7b52" };
   }
   if(s.includes("akira")){
-    return { bg:"#f1f0ee", fg:"#141414", border:"#c9b06a", tape:"#c9b06a" }; // 黑金
+    return { bg:"#f1f0ee", fg:"#141414", border:"#c9b06a", tape:"#c9b06a" };
   }
   if(s.includes("團體") || s.includes("group")){
-    return { bg:"#ecf5ef", fg:"#17422a", border:"#83b69a", tape:"#2e7d52" }; // 森林綠
+    return { bg:"#ecf5ef", fg:"#17422a", border:"#83b69a", tape:"#2e7d52" };
   }
   return { bg:"#f5f5f5", fg:"#111111", border:"#cccccc", tape:"#cccccc" };
 }
@@ -203,7 +207,6 @@ export async function addCustomBackgroundFiles(fileList){
   if(!files.length) return getCustomBackgrounds();
 
   const current = getCustomBackgrounds();
-
   for(const f of files){
     if(!f.type || !f.type.startsWith("image/")) continue;
     const dataUrl = await readFileAsDataURL(f);
@@ -214,7 +217,6 @@ export async function addCustomBackgroundFiles(fileList){
       addedAt: Date.now()
     });
   }
-
   saveCustomBackgrounds(current);
   return current;
 }
@@ -225,7 +227,6 @@ export function deleteCustomBackground(id){
   return next;
 }
 
-// （可選）改名：你目前 zip 的 app.js 有，保留不破壞相容
 export function renameCustomBackground(id, newName){
   const arr = getCustomBackgrounds();
   const item = arr.find(x=>x.id===id);
@@ -236,9 +237,8 @@ export function renameCustomBackground(id, newName){
   return arr;
 }
 
-// 你專案內建背景（若你有實際放圖，改這裡即可）
+// 內建背景（有放就會用，沒放也不影響：你主要用背景庫 dataUrl）
 export function getBuiltInBackgrounds(){
-  // 若你 repo 裡沒有這些檔案也沒關係：你主要會用背景庫 dataUrl
   return [
     "assets/backgrounds/default.jpg",
     "assets/backgrounds/planner1.jpg",
@@ -254,13 +254,11 @@ export function getAllBackgroundOptions(){
     label: `🖼️ ${x.name}`,
     id: x.id
   }));
-
   const builtIn = getBuiltInBackgrounds().map(u=>({
     type: "builtIn",
     value: u,
     label: u
   }));
-
   return [...custom, ...builtIn];
 }
 
@@ -270,14 +268,9 @@ export function getAllBackgroundOptions(){
 export async function applyBackground(theme="planner"){
   const cfg = ensureConfig();
   const ui  = getUI();
-
-  const bg = document.querySelector(".bg-wrap");
+  const bg  = document.querySelector(".bg-wrap");
   if(!bg) return;
 
-  // 背景來源優先順序：
-  // 1) 若使用者在首頁按過上下（ui.bgIndexHome 非 null），首頁改用輪播 index
-  // 2) 否則用 cfg.backgroundUrl（設定頁選的）
-  // 3) 再不然用 options[0]（背景庫第一張或內建第一張）
   const options = getAllBackgroundOptions().map(o=>o.value);
   let url = "";
 
@@ -287,11 +280,9 @@ export async function applyBackground(theme="planner"){
     url = cfg.backgroundUrl || (options[0] || "");
   }
 
-  // 你的 CSS 是 .bg-wrap::before { background-image: var(--bg-image) }
   const cssVal = url ? `url("${url}")` : "none";
   bg.style.setProperty("--bg-image", cssVal);
 
-  // 背景透明度（首頁 slider 會改）
   const op = (typeof ui.bgOpacity === "number") ? ui.bgOpacity : 0.25;
   bg.style.setProperty("--bg-opacity", String(op));
 }
@@ -311,14 +302,12 @@ export async function setupBGM(audioEl){
       audioEl.src = cfg.musicDataUrl;
     }
   }else{
-    // 沒音樂就清掉（讓首頁 UI 自己決定要不要顯示）
     audioEl.removeAttribute("src");
   }
 }
 
 // =====================
-// Savings Data (存錢資料)
-// schema: { rules:{eventName:number}, records:{ "YYYY-MM-DD":[{cat,event,times,amount,rewardImg,ts}] } }
+// Savings Data (存錢)
 // =====================
 export function loadData(){
   const raw = localStorage.getItem(SAVE_KEY);
@@ -358,10 +347,8 @@ export function monthSum(dataObj, year, month0){
 }
 
 export function computeStreak(dataObj){
-  // 連續打卡：以「今天往回」連續有存錢紀錄的天數
   const data = dataObj || loadData();
   const records = data.records || {};
-
   let d = new Date();
   let streak = 0;
 
@@ -378,11 +365,8 @@ export function computeStreak(dataObj){
 
 // =====================
 // Reward image picker (calendar 用)
-// - 你的專案目前沒有獨立 reward key，所以這裡做「最不破壞」策略：
-//   優先用 localStorage 的 reward 資料（若你未來新增），其次用貼紙庫（oshi_deco_assets_v1）隨機
 // =====================
 export async function pickRewardImage(){
-  // 1) 若你未來新增 reward 資料，可用這個 key
   const REWARD_KEY = "oshi_reward_assets_v1";
   const rewardArr = safeJSON(localStorage.getItem(REWARD_KEY), null);
   if(Array.isArray(rewardArr) && rewardArr.length){
@@ -390,15 +374,12 @@ export async function pickRewardImage(){
     return rewardArr[i] || "";
   }
 
-  // 2) fallback：用貼紙庫（calendar.html 的貼紙庫 key）
   const ASSET_KEY = "oshi_deco_assets_v1";
   const assets = safeJSON(localStorage.getItem(ASSET_KEY), []);
   if(Array.isArray(assets) && assets.length){
     const i = Math.floor(Math.random() * assets.length);
     return assets[i] || "";
   }
-
-  // 3) 沒素材就空字串（日期格就不顯示縮圖）
   return "";
 }
 
@@ -424,7 +405,7 @@ export function bytesFromLocalStorageKeys(keys){
   try{
     for(const k of (keys || [])){
       const v = localStorage.getItem(k) || "";
-      bytes += (k.length + v.length) * 2; // UTF-16 粗估
+      bytes += (k.length + v.length) * 2;
     }
   }catch(e){}
   return bytes;
