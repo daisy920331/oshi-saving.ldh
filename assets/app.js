@@ -149,3 +149,45 @@ function readFileAsDataURL(file){
     r.readAsDataURL(file);
   });
 }
+// ===== Storage / Quota helpers =====
+export async function getStorageEstimate(){
+  // 回傳：{ supported, usageBytes, quotaBytes }
+  // supported=true 表示是瀏覽器回報的估算值（較準）
+  // supported=false 表示回傳的是 null（不支援）
+  try{
+    if (navigator.storage && navigator.storage.estimate){
+      const est = await navigator.storage.estimate();
+      return {
+        supported: true,
+        usageBytes: Number(est.usage || 0),
+        quotaBytes: Number(est.quota || 0),
+      };
+    }
+  }catch(e){}
+  return { supported: false, usageBytes: 0, quotaBytes: 0 };
+}
+
+export function bytesFromLocalStorageKeys(keys){
+  // 估算 localStorage 字串大小（UTF-16 近似 2 bytes/char）
+  // 只估算指定 keys（例如背景庫 key + 設定 key）
+  let bytes = 0;
+  try{
+    for(const k of (keys || [])){
+      const v = localStorage.getItem(k) || "";
+      bytes += (k.length + v.length) * 2;
+    }
+  }catch(e){}
+  return bytes;
+}
+
+export function formatBytes(bytes){
+  const b = Number(bytes || 0);
+  if (b < 1024) return `${b} B`;
+  const kb = b / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(1)} MB`;
+  const gb = mb / 1024;
+  return `${gb.toFixed(2)} GB`;
+}
+
