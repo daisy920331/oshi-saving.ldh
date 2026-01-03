@@ -248,10 +248,11 @@
 <script type="module">
   import { guardSetup } from "./assets/app.js";
 guardSetup();
-  import {
-    CATS, loadData, saveData, ymd, ymLabel, monthSum,
-    pickRewardImage, applyBackground
-  } from "./assets/app.js";
+ import {
+  getCats,
+  loadData, saveData, ymd, ymLabel, monthSum,
+  pickRewardImage, applyBackground
+} from "./assets/app.js";
 
   await applyBackground("planner");
 
@@ -477,7 +478,13 @@ guardSetup();
 
   // ===== panel =====
   function fillPanel(){
-    el("cat").innerHTML = CATS.map(c=>`<option value="${c}">${c}</option>`).join("");
+    function renderCats(){
+  const cats = getCats();
+  el("cat").innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join("");
+}
+window.addEventListener("pageshow", () => {
+  renderCats();
+});
 
     const events = Object.keys(data.rules || {});
     el("event").innerHTML = events.map(e=>`<option value="${e}">${e}</option>`).join("");
@@ -673,4 +680,5 @@ guardSetup();
 </script>
 </body>
 </html>
+
 
