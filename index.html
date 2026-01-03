@@ -18,13 +18,17 @@ header{
   padding: 14px 16px 6px;
 }
 
-/* 標題置中 */
 header h1{
-  text-align:center;
-  width:100%;
+  text-align: center;
+  width: 100%;
+  font-family: "Iansui", system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+  letter-spacing: .5px;
+  margin: 14px 0 6px;
+
+  font-size: 48pt;             
+  text-shadow: 0 2px 0 rgba(255,255,255,.6);
 }
 
-/* 「設定」固定在右上角，水平顯示 */
 header .sub{
   position: absolute;
   right: 16px;
@@ -33,7 +37,7 @@ header .sub{
 }
 
 header .sub a{
-  writing-mode: horizontal-tb; /* 強制水平 */
+  writing-mode: horizontal-tb; 
   text-orientation: mixed;
   display: inline-block;
   text-decoration: none;
