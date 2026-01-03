@@ -43,6 +43,23 @@
     }
     .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
     .danger{color:#b42318;}
+
+    /* 候選池 UI */
+    .poolBox{border:1px dashed rgba(120,120,120,.35); border-radius:16px; padding:12px; background:rgba(250,249,246,.7); margin-top:12px;}
+    .tabRow{display:flex; gap:8px; flex-wrap:wrap;}
+    .tabBtn{
+      padding:8px 12px; border-radius:999px; border:1px solid var(--line);
+      background:#fff; font-weight:900; cursor:pointer;
+    }
+    .tabBtn.on{background:rgba(180,150,90,.16);}
+    .poolList{max-height:260px; overflow:auto; margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+    .poolItem{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid rgba(0,0,0,.06);
+      background:#fff; border-radius:14px; padding:8px 10px;
+    }
+    .poolItem small{color:var(--muted);}
+    .poolActions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; justify-content:space-between;}
   </style>
 </head>
 <body>
@@ -67,10 +84,36 @@
 
     <div class="card2">
       <h2 style="margin:0 0 10px;font-size:15px;">對象與顏色</h2>
-      <div class="row2">
-        <input id="newCat" type="text" placeholder="新增對象（例：EXILE THE SECOND）" style="flex:1 1 240px;">
+
+      <!-- ✅ 候選池（團體/個人） -->
+      <div class="poolBox">
+        <b>從名單加入（可勾選多個）</b>
+        <div class="hint">切換「團體 / 個人」，搜尋後勾選，按「加入已選」。</div>
+
+        <div class="tabRow" style="margin-top:10px;">
+          <button class="tabBtn on" id="tabGroups">團體</button>
+          <button class="tabBtn" id="tabPeople">個人</button>
+        </div>
+
+        <div class="row2" style="margin-top:10px;">
+          <input id="poolSearch" type="text" placeholder="搜尋…" style="flex:1 1 240px;">
+          <button class="btn" id="poolCheckAll">全選</button>
+          <button class="btn" id="poolUncheckAll">全不選</button>
+        </div>
+
+        <div class="poolList" id="poolList"></div>
+
+        <div class="poolActions">
+          <small class="danger" id="poolCount">已選 0</small>
+          <button class="btn" id="poolAddSelected">＋加入已選</button>
+        </div>
+      </div>
+
+      <div class="row2" style="margin-top:12px;">
+        <input id="newCat" type="text" placeholder="手動新增對象（例：EXILE THE SECOND）" style="flex:1 1 240px;">
         <button class="btn" id="addCat">＋新增</button>
       </div>
+
       <div class="catList" id="catList"></div>
     </div>
 
@@ -104,6 +147,7 @@
   import {
     getBuiltInBackgrounds, getConfig, saveConfig, applyBackground, getCatTheme
   } from "./assets/app.js";
+  import { PRESET_GROUPS, PRESET_PEOPLE } from "./assets/presets.js";
 
   await applyBackground("planner");
 
@@ -127,6 +171,84 @@
   if (cfg.backgroundUrl && bgs.includes(cfg.backgroundUrl)) el("bgSelect").value = cfg.backgroundUrl;
   else el("bgSelect").value = bgs[0] || "assets/backgrounds/default.jpg";
 
+  // ===== 候選池（團體/個人） =====
+  let poolMode = "groups";
+
+  function getPool(){
+    const q = (el("poolSearch").value || "").trim().toLowerCase();
+    const list = (poolMode === "groups" ? PRESET_GROUPS : PRESET_PEOPLE).slice();
+    if(!q) return list;
+    return list.filter(x => String(x).toLowerCase().includes(q));
+  }
+
+  function renderPool(){
+    const list = getPool();
+    el("poolList").innerHTML = list.map((name)=>`
+      <label class="poolItem">
+        <input type="checkbox" data-name="${escapeHtml(name)}">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <b>${escapeHtml(name)}</b>
+          <small>${poolMode === "groups" ? "團體" : "個人"}</small>
+        </div>
+      </label>
+    `).join("");
+
+    updatePoolCount();
+    el("poolList").querySelectorAll("input[type=checkbox]").forEach(cb=>{
+      cb.onchange = updatePoolCount;
+    });
+  }
+
+  function updatePoolCount(){
+    const n = el("poolList").querySelectorAll("input[type=checkbox]:checked").length;
+    el("poolCount").textContent = `已選 ${n}`;
+  }
+
+  el("tabGroups").onclick = ()=>{
+    poolMode = "groups";
+    el("tabGroups").classList.add("on");
+    el("tabPeople").classList.remove("on");
+    el("poolSearch").value = "";
+    renderPool();
+  };
+  el("tabPeople").onclick = ()=>{
+    poolMode = "people";
+    el("tabPeople").classList.add("on");
+    el("tabGroups").classList.remove("on");
+    el("poolSearch").value = "";
+    renderPool();
+  };
+
+  el("poolSearch").oninput = renderPool;
+
+  el("poolCheckAll").onclick = ()=>{
+    el("poolList").querySelectorAll("input[type=checkbox]").forEach(cb=>cb.checked = true);
+    updatePoolCount();
+  };
+  el("poolUncheckAll").onclick = ()=>{
+    el("poolList").querySelectorAll("input[type=checkbox]").forEach(cb=>cb.checked = false);
+    updatePoolCount();
+  };
+
+  el("poolAddSelected").onclick = ()=>{
+    const picked = Array.from(el("poolList").querySelectorAll("input[type=checkbox]:checked"))
+      .map(cb => cb.getAttribute("data-name"))
+      .filter(Boolean);
+
+    if(!picked.length) return;
+
+    let added = 0;
+    for(const name of picked){
+      if(cfg.cats.includes(name)) continue;
+      cfg.cats.push(name);
+      added += 1;
+    }
+
+    renderCats();
+    alert(added ? `已加入 ${added} 個對象！` : "選到的對象都已經存在了～");
+  };
+
+  // ===== 已選列表 + 顏色 =====
   function renderCats(){
     const list = el("catList");
     list.innerHTML = "";
@@ -138,7 +260,7 @@
       div.className = "catItem";
       div.innerHTML = `
         <div class="row2" style="justify-content:space-between;">
-          <b>${name}</b>
+          <b>${escapeHtml(name)}</b>
           <button class="btn" data-del="${idx}"><span class="danger">刪除</span></button>
         </div>
 
@@ -162,7 +284,7 @@
         </div>
 
         <div class="previewTag" style="background:${t.bg};color:${t.fg};border:1px solid ${t.border};">
-          預覽：${name}
+          預覽：${escapeHtml(name)}
         </div>
       `;
       list.appendChild(div);
@@ -261,7 +383,16 @@
   function expand3(h){
     return "#" + h[1]+h[1]+h[2]+h[2]+h[3]+h[3];
   }
+  function escapeHtml(s){
+    return String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
 
+  renderPool();
   renderCats();
 </script>
 </body>
