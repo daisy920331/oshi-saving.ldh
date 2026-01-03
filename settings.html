@@ -165,6 +165,7 @@
       <div class="hint">上傳後會留存在你的背景庫，除非你自行刪除才會消失。</div>
 
       <div id="bgLibrary" style="margin-top:10px;"></div>
+      <div id="bgQuotaHint" class="hint" style="margin-top:8px;"></div>
       <div class="hint">提示：圖片太大/太多可能塞滿瀏覽器容量，建議用壓縮小圖。</div>
     </div>
 
@@ -188,7 +189,8 @@
 <script type="module">
   import {
     getConfig, saveConfig, applyBackground, getCatTheme,
-    getAllBackgroundOptions, addCustomBackgroundFiles, getCustomBackgrounds, deleteCustomBackground
+    getAllBackgroundOptions, addCustomBackgroundFiles, getCustomBackgrounds, deleteCustomBackground,
+    getStorageEstimate, bytesFromLocalStorageKeys, formatBytes
   } from "./assets/app.js";
   import { PRESET_GROUPS, PRESET_PEOPLE } from "./assets/presets.js";
 
@@ -212,13 +214,12 @@
   let poolMode = "groups"; // groups | people
 
   function getDisplayNameFromGroup(g){
-    const mode = el("groupNameMode").value; // full | short
+    const mode = el("groupNameMode").value;
     if(mode === "short" && g.short) return g.short;
     return g.full;
   }
-
   function getDisplayNameFromPerson(p){
-    const mode = el("peopleNameMode").value; // roman | kanji
+    const mode = el("peopleNameMode").value;
     if(mode === "kanji" && p.kanji) return p.kanji;
     return p.roman;
   }
@@ -438,7 +439,6 @@
         const id = btn.getAttribute("data-delbg");
         if(!confirm("確定從背景庫刪除這張背景？")) return;
 
-        // 若正在使用這張背景，刪除後回到第一個可用背景
         const before = getCustomBackgrounds();
         const deleting = before.find(x=>x.id===id);
 
@@ -452,18 +452,43 @@
         renderBgSelect();
         renderBgLibrary();
         await applyBackground("planner");
+        await updateBgQuotaHint();
       };
     });
+  }
+
+  async function updateBgQuotaHint(){
+    const hint = document.getElementById("bgQuotaHint");
+    if(!hint) return;
+
+    const est = await getStorageEstimate();
+    const rough = bytesFromLocalStorageKeys(["oshi_config_v1", "oshi_bg_library_v1"]);
+
+    if(est.supported && est.quotaBytes){
+      const used = est.usageBytes;
+      const quota = est.quotaBytes;
+      const left = Math.max(0, quota - used);
+      const pct = Math.min(100, Math.round((used / quota) * 100));
+
+      hint.textContent =
+        `容量：已用 ${formatBytes(used)} / 可用 ${formatBytes(quota)}（剩餘 ${formatBytes(left)}，${pct}%）` +
+        `｜背景庫粗估：${formatBytes(rough)}`;
+    }else{
+      hint.textContent =
+        `容量提示：此瀏覽器不支援精準估算。背景庫＋設定粗估已用 ${formatBytes(rough)}（localStorage）。`;
+    }
   }
 
   // init 背景
   renderBgSelect();
   renderBgLibrary();
+  await updateBgQuotaHint();
 
   el("bgSelect").onchange = async ()=>{
     cfg.backgroundUrl = el("bgSelect").value;
     saveConfig(cfg);
     await applyBackground("planner");
+    await updateBgQuotaHint();
   };
 
   el("bgUpload").onchange = async (e)=>{
@@ -482,6 +507,7 @@
     renderBgSelect();
     renderBgLibrary();
     await applyBackground("planner");
+    await updateBgQuotaHint();
     alert("已加入背景庫！可以在下拉選單切換。");
   };
 
