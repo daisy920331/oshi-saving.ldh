@@ -1,125 +1,193 @@
 // assets/app.js
-// ==========================================================
-// LDH 追星存錢手帳 - 共用工具
-// 目的：
-// 1) 提供所有頁面需要的 export（避免月曆/首頁整個 JS 掛掉）
-// 2) 支援「背景庫可上傳多張」+ 首頁/各頁背景套用
-// ==========================================================
+// =========================================================
+// LDH追星存錢手帳 - app.js（整合完整版）
+// - 舊版首頁/日曆依賴函式：guardSetup/getSiteTitle/getUI/saveUI/setupBGM/loadData/saveData...
+// - 新版：背景庫多張上傳、刪除、容量提示（navigator.storage.estimate）
+// - 修正背景顯示：配合 app.css 使用 .bg-wrap::before + --bg-image
+// =========================================================
 
-// ===== Keys =====
-export const CONFIG_KEY = "oshi_config_v1";
-const UI_KEY = "oshi_ui_v1";
+// =====================
+// Storage Keys
+// =====================
+export const CONFIG_KEY      = "oshi_config_v1";
+export const UI_KEY          = "oshi_ui_v1";
+export const SAVE_KEY        = "oshi_savings_v1";     // 存錢資料
+export const BG_LIBRARY_KEY  = "oshi_bg_library_v1";  // 背景庫
 
-// 新增：自訂背景庫（多張）
-const BG_LIBRARY_KEY = "oshi_bg_library_v1"; // array of {id,name,dataUrl,addedAt}
-
-// 存錢資料：為了相容舊版本，讀取時會嘗試多個 key
-const SAVE_DATA_KEY_PRIMARY = "oshi_savings_v1";
-const SAVE_DATA_KEY_CANDIDATES = [
-  SAVE_DATA_KEY_PRIMARY,
-  "oshi_data_v1",
-  "oshi_saving_v1",
-  "oshi_save_v1",
-  "oshi_money_v1",
-];
-
+// =====================
+// Defaults
+// =====================
 export const DEFAULT_CATS = ["SHOKICHI", "AKIRA", "團體"];
-export const CATS = DEFAULT_CATS; // 供部分頁面直接使用（實際以設定 cats 為準）
 
-// ===== Config =====
+// 供 calendar / expense / events 直接用（使用者改設定後通常會刷新頁面，所以 OK）
+export const CATS = (() => {
+  const cfg = safeJSON(localStorage.getItem(CONFIG_KEY), null);
+  const arr = cfg?.cats;
+  return Array.isArray(arr) && arr.length ? arr : DEFAULT_CATS.slice();
+})();
+
+// =====================
+// Small utils
+// =====================
+export function pad(n){ return String(n).padStart(2, "0"); }
+
+export function ymd(d){
+  const x = (d instanceof Date) ? d : new Date(d);
+  return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`;
+}
+
+export function ymLabel(y, m0){
+  // m0 = 0~11
+  return `${y}-${pad(m0+1)}`;
+}
+
+function clampMod(i, len){
+  if(!len) return 0;
+  let x = Number(i || 0);
+  x = x % len;
+  if(x < 0) x += len;
+  return x;
+}
+
+function safeJSON(raw, fallback){
+  try{ return raw ? JSON.parse(raw) : fallback; }catch{ return fallback; }
+}
+
+// =====================
+// Config
+// =====================
 export function getConfig(){
-  try{
-    const raw = localStorage.getItem(CONFIG_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){
-    return null;
-  }
+  return safeJSON(localStorage.getItem(CONFIG_KEY), null);
 }
 
 export function saveConfig(cfg){
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg || {}));
+  try{
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg || {}));
+  }catch(e){
+    alert("儲存失敗：可能是瀏覽器容量已滿（背景/音樂太多）。\n請到設定頁刪除一些背景或改用小圖。");
+    throw e;
+  }
 }
 
 export function ensureConfig(){
   let cfg = getConfig();
   if(!cfg){
     cfg = {
-      setupDone:false,
-      ownerName:"",
-      siteTitle:"",
+      setupDone: false,
+      ownerName: "",
+      siteTitle: "",
       cats: DEFAULT_CATS.slice(),
-      themeMap:{},
-      backgroundUrl:"",
-      musicDataUrl:"",
+      themeMap: {},
+      backgroundUrl: "",
+      musicDataUrl: ""
     };
     saveConfig(cfg);
+  }else{
+    // 補缺欄位（向前相容）
+    if(!Array.isArray(cfg.cats) || !cfg.cats.length) cfg.cats = DEFAULT_CATS.slice();
+    if(!cfg.themeMap) cfg.themeMap = {};
+    if(typeof cfg.backgroundUrl !== "string") cfg.backgroundUrl = "";
+    if(typeof cfg.musicDataUrl !== "string") cfg.musicDataUrl = "";
+    if(typeof cfg.ownerName !== "string") cfg.ownerName = "";
+    if(typeof cfg.siteTitle !== "string") cfg.siteTitle = "";
   }
-  // 防呆：避免缺欄位
-  cfg.cats = Array.isArray(cfg.cats) && cfg.cats.length ? cfg.cats : DEFAULT_CATS.slice();
-  cfg.themeMap = cfg.themeMap && typeof cfg.themeMap === "object" ? cfg.themeMap : {};
-  cfg.backgroundUrl = cfg.backgroundUrl || "";
-  cfg.musicDataUrl = cfg.musicDataUrl || "";
   return cfg;
 }
 
-export function getSiteTitle(){
-  const cfg = ensureConfig();
-  return (cfg.siteTitle || "").trim() || "LDH追星存錢手帳";
-}
-
-export function guardSetup(){
-  const cfg = ensureConfig();
-  const path = (location.pathname || "").toLowerCase();
-  const isSetupPage = path.endsWith("/setup.html") || path.endsWith("setup.html");
-  if(!cfg.setupDone && !isSetupPage){
-    // 用 replace 避免返回鍵回到壞狀態
-    location.replace("setup.html");
-  }
-}
-
-// ===== UI prefs (背景切換/透明度/音量) =====
+// =====================
+// UI prefs (for index.html knobs)
+// =====================
 export function getUI(){
-  try{
-    const raw = localStorage.getItem(UI_KEY);
-    const ui = raw ? JSON.parse(raw) : {};
-    return ui && typeof ui === "object" ? ui : {};
-  }catch{
-    return {};
-  }
+  const ui = safeJSON(localStorage.getItem(UI_KEY), {}) || {};
+  // defaults
+  if(typeof ui.bgOpacity !== "number") ui.bgOpacity = 0.25;
+  if(typeof ui.musicVolume !== "number") ui.musicVolume = 0.6;
+  if(typeof ui.musicOn !== "boolean") ui.musicOn = true;
+
+  // 背景輪播 index（首頁按鈕用）
+  if(typeof ui.bgIndexHome !== "number") ui.bgIndexHome = null; // null=用 config.backgroundUrl
+  return ui;
 }
 
 export function saveUI(ui){
-  localStorage.setItem(UI_KEY, JSON.stringify(ui || {}));
-}
-
-// ===== Built-in backgrounds =====
-export function getBuiltInBackgrounds(){
-  // 專案內建背景（可自行加檔名）
-  return [
-    "assets/backgrounds/default.jpg",
-    "assets/backgrounds/planner1.jpg",
-    "assets/backgrounds/planner2.jpg",
-    "assets/backgrounds/planner3.jpg",
-  ];
-}
-
-// ===== Custom background library =====
-export function getCustomBackgrounds(){
   try{
-    const raw = localStorage.getItem(BG_LIBRARY_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
+    localStorage.setItem(UI_KEY, JSON.stringify(ui || {}));
   }catch(e){
-    return [];
+    // UI 不重要，失敗就不擋
+    console.warn("saveUI failed", e);
   }
+}
+
+// =====================
+// Site title (首頁用)
+// =====================
+export function getSiteTitle(){
+  const cfg = ensureConfig();
+  const custom = (cfg.siteTitle || "").trim();
+  if(custom) return custom;
+
+  const name = (cfg.ownerName || "").trim();
+  if(name) return `${name}的LDH追星存錢手帳`;
+
+  return "LDH追星存錢手帳";
+}
+
+// =====================
+// guardSetup (calendar/expense/events 用)
+// =====================
+export function guardSetup(){
+  const cfg = ensureConfig();
+  if(!cfg.setupDone){
+    // 避免在 setup 頁自己跳自己
+    const here = (location.pathname || "").toLowerCase();
+    if(!here.endsWith("setup.html")){
+      location.href = "setup.html";
+    }
+  }
+}
+
+// =====================
+// Category theme (顏色)
+// =====================
+export function getCatTheme(name){
+  const cfg = ensureConfig();
+  const fromMap = cfg.themeMap?.[name];
+  if(fromMap && (fromMap.bg || fromMap.fg || fromMap.border || fromMap.tape)){
+    return {
+      bg: fromMap.bg || "#f5f5f5",
+      fg: fromMap.fg || "#111111",
+      border: fromMap.border || "#cccccc",
+      tape: fromMap.tape || "#cccccc",
+    };
+  }
+
+  const s = String(name || "").toLowerCase();
+  if(s.includes("shokichi")){
+    return { bg:"#ffefe8", fg:"#7a2b18", border:"#ffb7a0", tape:"#ff7b52" }; // 橘紅
+  }
+  if(s.includes("akira")){
+    return { bg:"#f1f0ee", fg:"#141414", border:"#c9b06a", tape:"#c9b06a" }; // 黑金
+  }
+  if(s.includes("團體") || s.includes("group")){
+    return { bg:"#ecf5ef", fg:"#17422a", border:"#83b69a", tape:"#2e7d52" }; // 森林綠
+  }
+  return { bg:"#f5f5f5", fg:"#111111", border:"#cccccc", tape:"#cccccc" };
+}
+
+// =====================
+// Background library (multi upload)
+// =====================
+function uid(){
+  return "bg_" + Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
+}
+
+export function getCustomBackgrounds(){
+  const arr = safeJSON(localStorage.getItem(BG_LIBRARY_KEY), []);
+  return Array.isArray(arr) ? arr : [];
 }
 
 function saveCustomBackgrounds(arr){
   localStorage.setItem(BG_LIBRARY_KEY, JSON.stringify(arr || []));
-}
-
-function uid(){
-  return "bg_" + Math.random().toString(36).slice(2,10) + "_" + Date.now().toString(36);
 }
 
 function readFileAsDataURL(file){
@@ -136,6 +204,7 @@ export async function addCustomBackgroundFiles(fileList){
   if(!files.length) return getCustomBackgrounds();
 
   const current = getCustomBackgrounds();
+
   for(const f of files){
     if(!f.type || !f.type.startsWith("image/")) continue;
     const dataUrl = await readFileAsDataURL(f);
@@ -143,227 +212,203 @@ export async function addCustomBackgroundFiles(fileList){
       id: uid(),
       name: f.name || "background",
       dataUrl,
-      addedAt: Date.now(),
+      addedAt: Date.now()
     });
   }
+
   saveCustomBackgrounds(current);
   return current;
 }
 
 export function deleteCustomBackground(id){
-  const current = getCustomBackgrounds();
-  const next = current.filter(x => x.id !== id);
+  const next = getCustomBackgrounds().filter(x => x.id !== id);
   saveCustomBackgrounds(next);
   return next;
 }
 
+// （可選）改名：你目前 zip 的 app.js 有，保留不破壞相容
 export function renameCustomBackground(id, newName){
-  const current = getCustomBackgrounds();
-  const item = current.find(x => x.id === id);
-  if(item) item.name = (newName || "").trim() || item.name;
-  saveCustomBackgrounds(current);
-  return current;
+  const arr = getCustomBackgrounds();
+  const item = arr.find(x=>x.id===id);
+  if(item){
+    item.name = String(newName || "").trim() || item.name;
+    saveCustomBackgrounds(arr);
+  }
+  return arr;
+}
+
+// 你專案內建背景（若你有實際放圖，改這裡即可）
+export function getBuiltInBackgrounds(){
+  // 若你 repo 裡沒有這些檔案也沒關係：你主要會用背景庫 dataUrl
+  return [
+    "assets/backgrounds/default.jpg",
+    "assets/backgrounds/planner1.jpg",
+    "assets/backgrounds/planner2.jpg",
+    "assets/backgrounds/planner3.jpg"
+  ];
 }
 
 export function getAllBackgroundOptions(){
-  const builtIn = getBuiltInBackgrounds().map(u => ({ type:"builtIn", value:u, label:u }));
-  const custom = getCustomBackgrounds().map(x => ({
-    type:"custom",
-    value:x.dataUrl,
-    label:`🖼️ ${x.name}`,
-    id:x.id,
+  const custom = getCustomBackgrounds().map(x=>({
+    type: "custom",
+    value: x.dataUrl,
+    label: `🖼️ ${x.name}`,
+    id: x.id
   }));
-  // 讓你上傳的在最上面
+
+  const builtIn = getBuiltInBackgrounds().map(u=>({
+    type: "builtIn",
+    value: u,
+    label: u
+  }));
+
   return [...custom, ...builtIn];
 }
 
-function clampIndex(i, len){
-  if(!len) return 0;
-  const n = ((Number(i)||0) % len + len) % len;
-  return n;
-}
-
-/**
- * 套用背景（所有頁面共用）
- * - theme: "home" | "planner" ...（用於分頁記住索引）
- * - 背景來源優先順序：
- *   1) 若 cfg.backgroundUrl 有值：用它
- *   2) 否則用 ui 的索引（bgIndexHome / bgIndexPlanner ...）
- * - 不論來源，最後會把選到的背景寫回 cfg.backgroundUrl，確保各頁一致
- */
+// =====================
+// applyBackground (IMPORTANT: use --bg-image for ::before)
+// =====================
 export async function applyBackground(theme="planner"){
   const cfg = ensureConfig();
-  const ui = getUI();
+  const ui  = getUI();
 
-  const options = getAllBackgroundOptions();
-  const key = theme === "home" ? "bgIndexHome" : "bgIndexPlanner";
+  const bg = document.querySelector(".bg-wrap");
+  if(!bg) return;
 
-  // 若有 cfg.backgroundUrl，優先用它；沒有才用索引
-  let pickedUrl = (cfg.backgroundUrl || "").trim();
-  if(!pickedUrl){
-    const idx = clampIndex(ui[key] ?? 0, options.length);
-    pickedUrl = options[idx]?.value || "";
+  // 背景來源優先順序：
+  // 1) 若使用者在首頁按過上下（ui.bgIndexHome 非 null），首頁改用輪播 index
+  // 2) 否則用 cfg.backgroundUrl（設定頁選的）
+  // 3) 再不然用 options[0]（背景庫第一張或內建第一張）
+  const options = getAllBackgroundOptions().map(o=>o.value);
+  let url = "";
+
+  if(theme === "home" && ui.bgIndexHome !== null && options.length){
+    url = options[clampMod(ui.bgIndexHome, options.length)] || "";
   }else{
-    // 如果 ui[key] 還沒設定，讓它對齊目前 cfg.backgroundUrl（避免第一次點上一張/下一張跳很怪）
-    if(ui[key] === undefined || ui[key] === null){
-      const i = options.findIndex(o => o.value === pickedUrl);
-      ui[key] = i >= 0 ? i : 0;
-      saveUI(ui);
-    }
+    url = cfg.backgroundUrl || (options[0] || "");
   }
 
-  // 透明度
-  const opacity = typeof ui.bgOpacity === "number" ? ui.bgOpacity : 0.25;
+  // 你的 CSS 是 .bg-wrap::before { background-image: var(--bg-image) }
+  const cssVal = url ? `url("${url}")` : "none";
+  bg.style.setProperty("--bg-image", cssVal);
 
-  // 用 CSS 變數（對應 app.css 的 .bg-wrap::before）
-  const root = document.documentElement;
-  root.style.setProperty("--bg-image", pickedUrl ? `url(\"${pickedUrl}\")` : "none");
-  root.style.setProperty("--bg-opacity", String(opacity));
-
-  // 也順手寫到 cfg.backgroundUrl，讓不同頁面一致
-  if(pickedUrl && pickedUrl !== cfg.backgroundUrl){
-    cfg.backgroundUrl = pickedUrl;
-    saveConfig(cfg);
-  }
+  // 背景透明度（首頁 slider 會改）
+  const op = (typeof ui.bgOpacity === "number") ? ui.bgOpacity : 0.25;
+  bg.style.setProperty("--bg-opacity", String(op));
 }
 
-// ===== Music =====
+// =====================
+// BGM
+// =====================
 export async function setupBGM(audioEl){
-  if(!audioEl) return;
   const cfg = ensureConfig();
-  const ui = getUI();
+  if(!audioEl) return;
 
-  const src = (cfg.musicDataUrl || "").trim();
-  if(!src){
-    audioEl.removeAttribute("src");
-    audioEl.load?.();
-    return;
-  }
-  if(audioEl.src !== src) audioEl.src = src;
   audioEl.loop = true;
+  audioEl.preload = "auto";
 
-  const vol = typeof ui.musicVolume === "number" ? ui.musicVolume : 0.6;
-  audioEl.volume = Math.min(1, Math.max(0, vol));
-}
-
-// ===== Category theme (設定頁用) =====
-export function getCatTheme(name){
-  const s = String(name || "").toLowerCase();
-  if(s.includes("shokichi")) return { bg:"#ffefe8", fg:"#7a2b18", border:"#ffb7a0", tape:"#ff7b52" };
-  if(s.includes("akira")) return { bg:"#f1f0ee", fg:"#141414", border:"#c9b06a", tape:"#c9b06a" };
-  if(s.includes("團體") || s.includes("group")) return { bg:"#ecf5ef", fg:"#17422a", border:"#83b69a", tape:"#2e7d52" };
-  return { bg:"#f5f5f5", fg:"#111111", border:"#cccccc", tape:"#cccccc" };
-}
-
-// ===== Date helpers =====
-export function pad(n){
-  return String(n).padStart(2, "0");
-}
-
-export function ymd(d){
-  const dt = (d instanceof Date) ? d : new Date(d);
-  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
-}
-
-export function ymLabel(y, m){
-  // m: 0-11
-  return `${y}-${pad(m+1)}`;
-}
-
-// ===== Save (存錢) data storage =====
-function tryParseJSON(raw, fallback){
-  if(!raw) return fallback;
-  try{ return JSON.parse(raw); }catch{ return fallback; }
-}
-
-function pickExistingSaveKey(){
-  for(const k of SAVE_DATA_KEY_CANDIDATES){
-    const raw = localStorage.getItem(k);
-    if(!raw) continue;
-    const obj = tryParseJSON(raw, null);
-    if(obj && typeof obj === "object" && obj.records && typeof obj.records === "object"){
-      return k;
+  if(cfg.musicDataUrl){
+    if(audioEl.src !== cfg.musicDataUrl){
+      audioEl.src = cfg.musicDataUrl;
     }
+  }else{
+    // 沒音樂就清掉（讓首頁 UI 自己決定要不要顯示）
+    audioEl.removeAttribute("src");
   }
-  return SAVE_DATA_KEY_PRIMARY;
 }
 
+// =====================
+// Savings Data (存錢資料)
+// schema: { rules:{eventName:number}, records:{ "YYYY-MM-DD":[{cat,event,times,amount,rewardImg,ts}] } }
+// =====================
 export function loadData(){
-  const key = pickExistingSaveKey();
-  const raw = localStorage.getItem(key);
-  const obj = tryParseJSON(raw, null);
-  const data = (obj && typeof obj === "object") ? obj : { records:{}, rules:{} };
-  data.records = data.records && typeof data.records === "object" ? data.records : {};
-  data.rules = data.rules && typeof data.rules === "object" ? data.rules : {};
-  data._keyUsed = key;
-  return data;
+  const raw = localStorage.getItem(SAVE_KEY);
+  if(!raw) return { rules:{}, records:{} };
+
+  const obj = safeJSON(raw, { rules:{}, records:{} }) || { rules:{}, records:{} };
+  if(!obj.rules) obj.rules = {};
+  if(!obj.records) obj.records = {};
+  return obj;
 }
 
-export function saveData(data){
-  const d = data && typeof data === "object" ? data : { records:{}, rules:{} };
-  const key = d._keyUsed || pickExistingSaveKey() || SAVE_DATA_KEY_PRIMARY;
-  // 儲存到目前使用 key
-  localStorage.setItem(key, JSON.stringify({ records:d.records||{}, rules:d.rules||{} }));
-  // 同步寫到 primary（保證後續版本固定讀得到）
-  if(key !== SAVE_DATA_KEY_PRIMARY){
-    localStorage.setItem(SAVE_DATA_KEY_PRIMARY, JSON.stringify({ records:d.records||{}, rules:d.rules||{} }));
+export function saveData(obj){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(obj || {rules:{},records:{}}));
+  }catch(e){
+    alert("存錢資料儲存失敗：可能容量滿了（背景/貼紙/音樂過大）。");
+    throw e;
   }
 }
 
-export function monthSum(data, y, m, catFilter=""){
-  // catFilter: ""=全部；或 "Shokichi" / "Akira" / "GROUP"（events 也用到）
-  const prefix = `${y}-${pad(m+1)}-`;
-  let s = 0;
-  const recs = (data && data.records) ? data.records : {};
-  for(const [dateKey, arr] of Object.entries(recs)){
-    if(!dateKey.startsWith(prefix)) continue;
-    for(const r of (arr||[])){
-      const cat = r.cat || "";
-      if(catFilter){
-        if(catFilter === "GROUP"){
-          if(cat.includes("Shokichi") || cat.includes("Akira")) continue;
-        }else if(!cat.includes(catFilter)){
-          continue;
-        }
-      }
-      s += Number(r.amount)||0;
+// =====================
+// KPI helpers (首頁用)
+// =====================
+export function monthSum(dataObj, year, month0){
+  const data = dataObj || loadData();
+  const prefix = `${year}-${pad(month0+1)}-`;
+  let sum = 0;
+
+  for(const k of Object.keys(data.records || {})){
+    if(!k.startsWith(prefix)) continue;
+    const arr = data.records[k] || [];
+    for(const r of arr){
+      sum += Number(r.amount) || 0;
     }
   }
-  return s;
+  return sum;
 }
 
-export function computeStreak(data, todayKey, catFilter=""){
-  // 從 todayKey 往回算連續有紀錄的天數
-  const recs = (data && data.records) ? data.records : {};
+export function computeStreak(dataObj){
+  // 連續打卡：以「今天往回」連續有存錢紀錄的天數
+  const data = dataObj || loadData();
+  const records = data.records || {};
+
+  let d = new Date();
   let streak = 0;
-  let cur = new Date(todayKey + "T00:00:00");
+
   while(true){
-    const key = ymd(cur);
-    const arr = recs[key] || [];
-    const ok = (arr||[]).some(r=>{
-      const cat = r.cat || "";
-      if(!catFilter) return true;
-      if(catFilter === "GROUP") return !(cat.includes("Shokichi") || cat.includes("Akira"));
-      return cat.includes(catFilter);
-    });
-    if(!ok) break;
+    const key = ymd(d);
+    const arr = records[key] || [];
+    const has = arr.some(r => (Number(r.amount)||0) > 0);
+    if(!has) break;
     streak += 1;
-    cur.setDate(cur.getDate()-1);
+    d.setDate(d.getDate() - 1);
   }
   return streak;
 }
 
-// ===== Reward image =====
+// =====================
+// Reward image picker (calendar 用)
+// - 你的專案目前沒有獨立 reward key，所以這裡做「最不破壞」策略：
+//   優先用 localStorage 的 reward 資料（若你未來新增），其次用貼紙庫（oshi_deco_assets_v1）隨機
+// =====================
 export async function pickRewardImage(){
-  // 目前專案的 reward 資料夾沒有實際檔案，避免回傳不存在路徑造成破圖。
-  // 你若之後要加 reward 圖，可在這裡改成隨機挑選 dataUrl/檔案。
+  // 1) 若你未來新增 reward 資料，可用這個 key
+  const REWARD_KEY = "oshi_reward_assets_v1";
+  const rewardArr = safeJSON(localStorage.getItem(REWARD_KEY), null);
+  if(Array.isArray(rewardArr) && rewardArr.length){
+    const i = Math.floor(Math.random() * rewardArr.length);
+    return rewardArr[i] || "";
+  }
+
+  // 2) fallback：用貼紙庫（calendar.html 的貼紙庫 key）
+  const ASSET_KEY = "oshi_deco_assets_v1";
+  const assets = safeJSON(localStorage.getItem(ASSET_KEY), []);
+  if(Array.isArray(assets) && assets.length){
+    const i = Math.floor(Math.random() * assets.length);
+    return assets[i] || "";
+  }
+
+  // 3) 沒素材就空字串（日期格就不顯示縮圖）
   return "";
 }
 
-// ===== Storage / Quota helpers =====
+// =====================
+// Storage quota helpers (settings/setup 顯示容量剩餘)
+// =====================
 export async function getStorageEstimate(){
   try{
-    if (navigator.storage && navigator.storage.estimate){
+    if(navigator.storage && navigator.storage.estimate){
       const est = await navigator.storage.estimate();
       return {
         supported: true,
@@ -380,7 +425,7 @@ export function bytesFromLocalStorageKeys(keys){
   try{
     for(const k of (keys || [])){
       const v = localStorage.getItem(k) || "";
-      bytes += (k.length + v.length) * 2; // UTF-16 近似
+      bytes += (k.length + v.length) * 2; // UTF-16 粗估
     }
   }catch(e){}
   return bytes;
