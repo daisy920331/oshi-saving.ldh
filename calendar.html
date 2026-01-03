@@ -1,258 +1,99 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>追星存錢｜存錢月曆</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>存錢月曆</title>
   <link rel="stylesheet" href="assets/app.css" />
-  <style>
-    .wrap{max-width:980px;margin:0 auto;padding:18px 16px 40px;}
-    .calendar{display:grid; grid-template-columns: repeat(7, 1fr); gap:10px;}
-    .dow{color:var(--muted); font-size:12px; padding:0 2px 6px;}
-
-    .monthbar{
-      display:grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items:center;
-      gap:10px;
-      margin-bottom:12px;
-    }
-    .monthbar .left{justify-self:start}
-    .monthbar .center{justify-self:center}
-    .monthbar .right{justify-self:end}
-
-    .cell{
-      border:1px solid var(--line);
-      border-radius:18px;
-      background: rgba(255,255,255,.70);
-      min-height:120px;
-      padding:12px;
-      cursor:pointer;
-      position:relative;
-      transition:.12s transform ease, .12s opacity ease;
-      overflow:hidden;
-    }
-    .cell:hover{transform: translateY(-1px); opacity:.96;}
-    .date{font-weight:800; font-size:14px;}
-    .sum{margin-top:6px; font-weight:900; font-size:14px;}
-    .outside{opacity:.30}
-
-    .cell.has-money{
-      background:#ffffff;
-      border-color:#e6e2d9;
-      box-shadow: 0 12px 24px rgba(0,0,0,.08), 0 2px 0 rgba(0,0,0,.03);
-    }
-    .cell.no-money{
-      background: rgba(90,90,90,.16);
-      border-color: rgba(90,90,90,.22);
-      box-shadow:none;
-    }
-    .cell.no-money .sum{color: rgba(20,20,20,.55);}
-
-    .topcat{
-      margin-top:6px;
-      display:inline-flex;
-      align-items:center;
-      padding:6px 12px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:900;
-      border:1px solid transparent;
-      max-width:100%;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      background:#faf9f6;
-    }
-    .cat-shokichi{background: rgba(226, 88, 34, .14); color:#c2410c; border-color: rgba(226, 88, 34, .35);}
-    .cat-akira{background: rgba(32, 32, 32, .08); color:#1f1f1f; border-color: rgba(180,150,90,.55); box-shadow: inset 0 0 0 1px rgba(180,150,90,.25);}
-    .cat-group{background: rgba(34, 139, 34, .14); color:#166534; border-color: rgba(34, 139, 34, .35);}
-
-    .sticker{
-      position:absolute; right:10px; top:10px;
-      width:34px; height:34px;
-      border-radius:12px;
-      border:1px solid rgba(157,183,198,.45);
-      background-color: rgba(255,255,255,.45);
-      background-size: cover;
-      background-position: center;
-      box-shadow: 0 8px 18px rgba(0,0,0,.12);
-      pointer-events:none;
-    }
-
-    /* 裝飾貼紙 */
-    .deco{
-      position:absolute;
-      width:34px;height:34px;
-      border-radius:10px;
-      background-size:cover;
-      background-position:center;
-      box-shadow:0 10px 18px rgba(0,0,0,.16);
-      border:1px solid rgba(255,255,255,.55);
-      cursor:grab;
-      z-index:3;
-    }
-
-    .overlay{position:fixed; inset:0; background:rgba(0,0,0,.25); display:none; z-index:20;}
-    .panel{
-      position:fixed; right:0; top:0; height:100%; width:min(480px, 100%);
-      background: rgba(255,255,255,.96);
-      border-left:1px solid var(--line);
-      transform: translateX(100%); transition:.18s transform ease;
-      z-index:21; padding:16px; overflow:auto; backdrop-filter: blur(10px);
-    }
-    .panel.open{transform: translateX(0);}
-    .overlay.show{display:block;}
-    .x{float:right; font-size:14px; padding:8px 10px; border-radius:999px;}
-
-    table{background:white}
-    th{background:#faf9f6}
-    .right{text-align:right}
-    .thumb{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);object-fit:cover;background:#faf9f6;}
-
-    .assetBar{
-      margin-top:14px;
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:rgba(255,255,255,.85);
-      padding:12px;
-      box-shadow:0 10px 22px rgba(0,0,0,.06), 0 2px 0 rgba(0,0,0,.02);
-    }
-    .assetRow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-    .assetTray{
-      margin-top:10px;
-      display:flex;
-      gap:10px;
-      overflow:auto;
-      padding-bottom:4px;
-    }
-    .assetItem{
-      width:52px;height:52px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:#faf9f6;
-      object-fit:cover;
-      flex:0 0 auto;
-      cursor:grab;
-    }
-    .smallHint{font-size:12px;color:var(--muted);margin-top:6px}
-  </style>
 </head>
 <body>
   <div class="bg-wrap"></div>
 
-<header>
-  <h1>存錢月曆</h1>
-  <div class="sub"><a href="index.html">← 回首頁</a></div>
-</header>
+  <header class="topbar">
+    <a class="back" href="index.html">←</a>
+    <div class="title">存錢月曆</div>
+    <a class="gear" href="settings.html">⚙</a>
+  </header>
 
-<div class="wrap">
-  <div class="monthbar">
-    <div class="left"><button class="btn" id="prev">◀ 上個月</button></div>
-    <div class="center"><span class="pill">月份：<b id="ym"></b></span></div>
-    <div class="right"><button class="btn" id="next">下個月 ▶</button></div>
-  </div>
-
-  <div class="row" style="justify-content:space-between;margin-bottom:10px;">
-    <span class="pill">本月累計：<b id="monthTotal">0</b> 元</span>
-    <span class="pill">提示：存錢日亮、沒存錢暗</span>
-  </div>
-
-  <div class="calendar" id="dow"></div>
-  <div class="calendar" id="cal"></div>
-
-  <div class="assetBar">
-    <div class="assetRow">
-      <b>小貼紙 / 小照片</b>
-      <div class="row">
-        <input id="assetPicker" type="file" accept="image/*" multiple style="display:none"/>
-        <button class="btn" id="addAssets">＋新增貼紙</button>
-        <button class="btn" id="clearAssets"><span style="color:#b42318">清空貼紙庫</span></button>
+  <main class="wrap">
+    <div class="card">
+      <div class="cal-header">
+        <button class="btn" id="prev">上個月</button>
+        <div class="cal-month" id="monthLabel"></div>
+        <button class="btn" id="next">下個月</button>
       </div>
+
+      <div id="dow" class="dow-row"></div>
+      <div id="grid" class="grid"></div>
     </div>
-    <div class="smallHint">拖曳貼紙到日期格子即可裝飾。格子內貼紙：拖曳可移動、雙擊刪除、右鍵替換。</div>
-    <div class="assetTray" id="assetTray"></div>
-  </div>
-</div>
 
-<div class="overlay" id="overlay"></div>
-<div class="panel" id="panel">
-  <button class="btn x" id="close">✕</button>
+    <div class="panel-overlay" id="overlay"></div>
+    <div class="panel" id="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span id="pickedDate"></span></div>
+        <button class="btn" id="close">✕</button>
+      </div>
 
-  <h2 style="margin:0 0 10px; font-size:15px;">每日紀錄</h2>
+      <div class="card" style="padding:14px;">
+        <h3 style="margin:0 0 8px; font-size:14px;">新增一筆存錢</h3>
 
-  <div class="row" style="margin-bottom:10px;">
-    <span class="pill">日期：<b id="pickedDate"></b></span>
-    <span class="pill">今天累計：<b id="dayTotal">0</b> 元</span>
-  </div>
+        <label>對象</label>
+        <select id="cat"></select>
 
-  <div class="card" style="padding:14px;">
-    <h3 style="margin:0 0 8px; font-size:14px;">新增一筆</h3>
+        <label>事件</label>
+        <select id="event"></select>
 
-    <label>分類（存款對象）</label>
-    <select id="cat"></select>
-
-    <label>事件</label>
-    <select id="event"></select>
-
-    <div class="row">
-      <div style="flex:1 1 120px;">
         <label>次數</label>
         <input id="times" type="number" min="1" value="1" />
+
+        <div class="row" style="margin-top:10px;align-items:center;">
+          <label style="margin:0;display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" id="useCustomAmt" />
+            使用自訂金額
+          </label>
+          <input id="customAmt" type="number" min="0" value="0" style="flex:1 1 160px;" disabled />
+        </div>
+
+        <button class="btn primary" id="add">➕ 加入今天</button>
+        <div class="hint">自訂金額會覆蓋事件金額×次數。</div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="clearDecos">🧹 清除今天裝飾</button>
+          <button class="btn" id="clearDay"><span style="color:#b42318;">清空今天</span></button>
+        </div>
       </div>
-      <div style="flex:1 1 180px;">
-        <label>金額（自動/自訂）</label>
-        <input id="amt" type="number" disabled />
+
+      <div class="card" style="padding:14px; margin-top:10px;">
+        <h3 style="margin:0 0 8px; font-size:14px;">事件金額設定</h3>
+        <label>選事件</label>
+        <select id="editEvent"></select>
+        <label>金額（元）</label>
+        <input id="editAmount" type="number" min="0" value="0" />
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="saveRule">💾 儲存金額</button>
+          <button class="btn" id="addEvent">✨ 新增自訂事件</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:14px; margin-top:10px;">
+        <h3 style="margin:0 0 8px; font-size:14px;">今日明細</h3>
+        <table>
+          <thead><tr><th>鼓勵</th><th>對象</th><th>事件</th><th class="right">金額</th></tr></thead>
+          <tbody id="log"></tbody>
+        </table>
       </div>
     </div>
-
-    <div class="row" style="margin-top:10px;align-items:center;">
-      <label style="margin:0;display:flex;gap:8px;align-items:center;">
-        <input type="checkbox" id="useCustomAmt" />
-        使用自訂金額
-      </label>
-      <input id="customAmt" type="number" min="0" value="0" style="flex:1 1 160px;" disabled />
-    </div>
-
-    <button class="btn primary" id="add">➕ 加入今天</button>
-    <div class="hint">自訂金額會覆蓋事件金額×次數。</div>
-
-    <!-- ✅ 一鍵清除今天裝飾 -->
-    <div class="row" style="margin-top:10px;">
-      <button class="btn" id="clearDecos">🧹 清除今天裝飾</button>
-      <button class="btn" id="clearDay"><span style="color:#b42318;">清空今天</span></button>
-    </div>
-  </div>
-
-  <div class="card" style="padding:14px; margin-top:10px;">
-    <h3 style="margin:0 0 8px; font-size:14px;">事件金額設定</h3>
-    <label>選事件</label>
-    <select id="editEvent"></select>
-    <label>金額（元）</label>
-    <input id="editAmount" type="number" min="0" value="0" />
-    <div class="row" style="margin-top:10px;">
-      <button class="btn" id="saveRule">💾 儲存金額</button>
-      <button class="btn" id="addEvent">✨ 新增自訂事件</button>
-    </div>
-  </div>
-
-  <div class="card" style="padding:14px; margin-top:10px;">
-    <h3 style="margin:0 0 8px; font-size:14px;">今日明細</h3>
-    <table>
-      <thead><tr><th>鼓勵</th><th>對象</th><th>事件</th><th class="right">金額</th></tr></thead>
-      <tbody id="log"></tbody>
-    </table>
-  </div>
-</div>
+  </main>
 
 <script type="module">
   import { guardSetup } from "./assets/app.js";
-guardSetup();
- import {
-  getCats,
-  loadData, saveData, ymd, ymLabel, monthSum,
-  pickRewardImage, applyBackground
-} from "./assets/app.js";
+  guardSetup();
+
+  import {
+    getCats,
+    loadData, saveData, ymd, ymLabel, monthSum,
+    pickRewardImage, applyBackground
+  } from "./assets/app.js";
 
   await applyBackground("planner");
 
@@ -267,7 +108,6 @@ guardSetup();
   let viewM = today.getMonth();
   let pickedDate = ymd(today);
 
-  // ===== assets / decos =====
   function loadAssets(){
     try{ return JSON.parse(localStorage.getItem(ASSET_KEY)||"[]") || []; }
     catch{ return []; }
@@ -289,8 +129,6 @@ guardSetup();
     return "cat-group";
   }
 
-  function pad(n){return String(n).padStart(2,"0");}
-
   function daySum(dateKey){
     const arr = data.records[dateKey] || [];
     return arr.reduce((s,r)=> s + (Number(r.amount)||0), 0);
@@ -310,181 +148,143 @@ guardSetup();
     el("dow").innerHTML = names.map(n=>`<div class="dow">${n}</div>`).join("");
   }
 
-  // ✅ 裝飾貼紙：確保「雙擊刪除」不會觸發格子 click
+  // 裝飾：雙擊刪除不觸發 cell click
   function renderDecosInCell(cell, dateKey){
     const decos = loadDecos();
     const list = decos[dateKey] || [];
-
     cell.querySelectorAll(".deco").forEach(x=>x.remove());
 
     for(const d of list){
       const div = document.createElement("div");
       div.className = "deco";
       div.style.left = (d.x ?? 10) + "px";
-      div.style.top  = (d.y ?? 58) + "px";
-      div.style.backgroundImage = `url('${d.src}')`;
+      div.style.top  = (d.y ?? 10) + "px";
+      div.style.backgroundImage = `url("${d.src}")`;
 
-      // ✅ 阻擋單擊冒泡（避免被當成點格子）
-      div.onclick = (e)=>{ e.preventDefault(); e.stopPropagation(); };
-
-      // ✅ 雙擊刪除（也阻擋冒泡）
-      div.ondblclick = (e)=>{
+      div.addEventListener("dblclick", (e)=>{
         e.preventDefault();
         e.stopPropagation();
-        const decos2 = loadDecos();
-        decos2[dateKey] = (decos2[dateKey]||[]).filter(x=>x !== d);
-        saveDecos(decos2);
-        renderCalendar();
-      };
-
-      // 拖移
-      div.onpointerdown = (e)=>{
-        e.preventDefault();
-        e.stopPropagation();
-        div.setPointerCapture(e.pointerId);
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-
-        const rectCell = cell.getBoundingClientRect();
-        const startLeft = parseInt(div.style.left || "0", 10);
-        const startTop  = parseInt(div.style.top  || "0", 10);
-
-        const move = (ev)=>{
-          const dx = ev.clientX - startX;
-          const dy = ev.clientY - startY;
-
-          let nx = startLeft + dx;
-          let ny = startTop + dy;
-
-          nx = Math.max(6, Math.min(rectCell.width - 40, nx));
-          ny = Math.max(22, Math.min(rectCell.height - 40, ny));
-
-          div.style.left = Math.round(nx) + "px";
-          div.style.top  = Math.round(ny) + "px";
-        };
-
-        const up = ()=>{
-          div.onpointermove = null;
-          div.onpointerup = null;
-
-          const decos2 = loadDecos();
-          const arr = decos2[dateKey] || [];
-          const idx = arr.indexOf(d);
-          if(idx >= 0){
-            arr[idx] = { ...arr[idx],
-              x: parseInt(div.style.left, 10),
-              y: parseInt(div.style.top, 10),
-            };
-            decos2[dateKey] = arr;
-            saveDecos(decos2);
-          }
-        };
-
-        div.onpointermove = move;
-        div.onpointerup = up;
-      };
-
-      // 右鍵替換
-      div.oncontextmenu = (e)=>{
-        e.preventDefault();
-        e.stopPropagation();
-
-        const assets = loadAssets();
-        if(!assets.length){
-          alert("你的貼紙庫目前是空的，先在下方『＋新增貼紙』加入圖片吧！");
-          return;
-        }
-        const msg =
-          "輸入要替換成第幾張貼紙（1 ~ " + assets.length + "）\n" +
-          "提示：你可以先在下方貼紙區從左到右數。";
-        const n = Number(prompt(msg));
-        if(!Number.isFinite(n) || n < 1 || n > assets.length) return;
-
-        const newSrc = assets[n-1];
         const decos2 = loadDecos();
         const arr = decos2[dateKey] || [];
-        const idx = arr.indexOf(d);
+        const idx = arr.findIndex(x => x.src===d.src && x.x===d.x && x.y===d.y);
         if(idx >= 0){
-          arr[idx] = { ...arr[idx], src: newSrc };
-          decos2[dateKey] = arr;
+          arr.splice(idx,1);
+          if(arr.length) decos2[dateKey] = arr;
+          else delete decos2[dateKey];
           saveDecos(decos2);
+          render();
+          renderDay();
         }
-        renderCalendar();
-      };
+      });
 
       cell.appendChild(div);
     }
   }
 
-  function renderCalendar(){
-    el("ym").textContent = ymLabel(viewY, viewM);
-    el("monthTotal").textContent = String(monthSum(data, viewY, viewM, ""));
+  function stickerInCell(cell, dateKey){
+    cell.querySelectorAll(".sticker").forEach(x=>x.remove());
+    const tr = topRecord(dateKey);
+    if(!tr || !tr.rewardImg) return;
 
-    const first = new Date(viewY, viewM, 1);
-    const start = new Date(viewY, viewM, 1 - first.getDay());
-
-    const cells = [];
-    for(let i=0;i<42;i++){
-      const d = new Date(start);
-      d.setDate(start.getDate()+i);
-      const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      const outside = d.getMonth() !== viewM;
-
-      const sum = daySum(key);
-      const has = sum > 0;
-
-      const rec = has ? topRecord(key) : null;
-      const sticker = rec ? (rec.rewardImg || "") : "";
-      const catTag = rec ? (rec.cat || "") : "";
-
-      cells.push(`
-        <div class="cell ${outside?"outside":""} ${has?"has-money":"no-money"}" data-date="${key}">
-          <div class="date">${d.getDate()}</div>
-          <div class="sum">${sum} 元</div>
-          ${rec ? `<div class="topcat ${catClass(catTag)}">${catTag}</div>` : ""}
-          ${sticker ? `<div class="sticker" style="background-image:url('${sticker}')"></div>` : ""}
-        </div>
-      `);
-    }
-    el("cal").innerHTML = cells.join("");
-
-    document.querySelectorAll(".cell").forEach(c=>{
-      const dateKey = c.dataset.date;
-
-      c.addEventListener("click", ()=>openDay(dateKey));
-
-      c.addEventListener("dragover", (e)=>{ e.preventDefault(); });
-      c.addEventListener("drop", (e)=>{
-        e.preventDefault();
-        const src = e.dataTransfer.getData("text/plain");
-        if(!src) return;
-
-        const rect = c.getBoundingClientRect();
-        const x = Math.max(6, Math.min(rect.width - 40, e.clientX - rect.left - 16));
-        const y = Math.max(22, Math.min(rect.height - 40, e.clientY - rect.top - 16));
-
-        const decos = loadDecos();
-        if(!decos[dateKey]) decos[dateKey] = [];
-        decos[dateKey].push({ src, x: Math.round(x), y: Math.round(y) });
-        saveDecos(decos);
-
-        renderDecosInCell(c, dateKey);
-      });
-
-      renderDecosInCell(c, dateKey);
-    });
+    const s = document.createElement("div");
+    s.className = "sticker";
+    s.style.backgroundImage = `url("${tr.rewardImg}")`;
+    cell.appendChild(s);
   }
 
-  // ===== panel =====
+  function render(){
+    el("monthLabel").textContent = ymLabel(viewY, viewM);
+
+    const first = new Date(viewY, viewM, 1);
+    const startDay = first.getDay();
+    const daysInMonth = new Date(viewY, viewM+1, 0).getDate();
+
+    const cells = [];
+    for(let i=0;i<startDay;i++) cells.push(null);
+    for(let d=1; d<=daysInMonth; d++){
+      cells.push(new Date(viewY, viewM, d));
+    }
+    while(cells.length % 7 !== 0) cells.push(null);
+
+    const now = new Date();
+    const thisYm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-`;
+
+    el("grid").innerHTML = "";
+    for(const dt of cells){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+
+      if(!dt){
+        cell.classList.add("empty");
+        el("grid").appendChild(cell);
+        continue;
+      }
+
+      const key = ymd(dt);
+      const isToday = key === ymd(now);
+      if(isToday) cell.classList.add("today");
+
+      const sum = daySum(key);
+      if(sum > 0){
+        cell.classList.add("has");
+      }else{
+        cell.classList.add("none");
+      }
+
+      const num = document.createElement("div");
+      num.className = "num";
+      num.textContent = String(dt.getDate());
+      cell.appendChild(num);
+
+      const tr = topRecord(key);
+      if(tr){
+        const tag = document.createElement("div");
+        tag.className = `tag ${catClass(tr.cat)}`;
+        tag.textContent = (tr.cat || "");
+        cell.appendChild(tag);
+      }
+
+      const amt = document.createElement("div");
+      amt.className = "amt";
+      amt.textContent = sum > 0 ? `+${sum}` : "";
+      cell.appendChild(amt);
+
+      stickerInCell(cell, key);
+      renderDecosInCell(cell, key);
+
+      cell.addEventListener("click", ()=>{
+        openDay(key);
+      });
+
+      el("grid").appendChild(cell);
+    }
+  }
+
+  // ======= ✅ 對象下拉：即時讀設定 =======
+  function renderCats(){
+    const cats = getCats();
+    el("cat").innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join("");
+  }
+  window.addEventListener("pageshow", ()=>{ renderCats(); });
+
+  function syncAmt(){
+    const ev = el("event").value;
+    const base = Number(data.rules?.[ev] || 0);
+    const t = Number(el("times").value || 1);
+    const useCustom = el("useCustomAmt").checked;
+    el("customAmt").disabled = !useCustom;
+    if(!useCustom){
+      el("customAmt").value = String(base * t);
+    }
+  }
+
+  function syncEditAmount(){
+    const ev = el("editEvent").value;
+    el("editAmount").value = String(Number(data.rules?.[ev] || 0));
+  }
+
   function fillPanel(){
-    function renderCats(){
-  const cats = getCats();
-  el("cat").innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join("");
-}
-window.addEventListener("pageshow", () => {
-  renderCats();
-});
+    renderCats();
 
     const events = Object.keys(data.rules || {});
     el("event").innerHTML = events.map(e=>`<option value="${e}">${e}</option>`).join("");
@@ -494,191 +294,129 @@ window.addEventListener("pageshow", () => {
     syncEditAmount();
   }
 
-  function syncAmt(){
-    const e = el("event").value;
-    const times = Math.max(1, Number(el("times").value || 1));
-    const unit = Number((data.rules||{})[e] || 0);
-    el("amt").value = unit * times;
-  }
-  function syncEditAmount(){
-    const e = el("editEvent").value;
-    el("editAmount").value = Number((data.rules||{})[e] || 0);
-  }
-
-  function renderDay(){
-    el("pickedDate").textContent = pickedDate;
-    el("dayTotal").textContent = String(daySum(pickedDate));
-
-    const arr = data.records[pickedDate] || [];
-    el("log").innerHTML = arr.length
-      ? arr.slice().reverse().map(x=>`
-        <tr>
-          <td>${x.rewardImg ? `<img class="thumb" src="${x.rewardImg}" alt="reward">` : ""}</td>
-          <td>${x.cat||""}</td>
-          <td>${x.event||""}${x.times>1 ? ` ×${x.times}`:""}</td>
-          <td class="right">${Number(x.amount)||0}</td>
-        </tr>
-      `).join("")
-      : `<tr><td colspan="4" style="color:var(--muted); padding:14px;">今天還沒有紀錄</td></tr>`;
-  }
-
   function openDay(dateKey){
     pickedDate = dateKey;
-    el("overlay").classList.add("show");
-    el("panel").classList.add("open");
+    el("pickedDate").textContent = pickedDate;
     fillPanel();
     renderDay();
+
+    el("overlay").classList.add("show");
+    el("panel").classList.add("open");
   }
+
   function closeDay(){
     el("overlay").classList.remove("show");
     el("panel").classList.remove("open");
   }
 
-  // 自訂金額
-  el("useCustomAmt").addEventListener("change", ()=>{
-    const on = el("useCustomAmt").checked;
-    el("customAmt").disabled = !on;
-    if(!on) el("customAmt").value = 0;
-  });
+  function renderDay(){
+    const arr = data.records[pickedDate] || [];
+    const tbody = el("log");
+    tbody.innerHTML = "";
 
-  el("times").addEventListener("input", ()=>{
-    if(Number(el("times").value)<1) el("times").value=1;
-    syncAmt();
-  });
-  el("event").addEventListener("change", syncAmt);
-  el("editEvent").addEventListener("change", syncEditAmount);
+    for(const r of arr){
+      const tr = document.createElement("tr");
+      tr.className = catClass(r.cat);
 
-  el("add").addEventListener("click", async ()=>{
-    const cat = el("cat").value;
-    const event = el("event").value;
-    const times = Math.max(1, Number(el("times").value||1));
+      const tdReward = document.createElement("td");
+      tdReward.innerHTML = r.rewardImg ? `<img class="mini" src="${r.rewardImg}">` : "";
+      tr.appendChild(tdReward);
 
-    const unit = Number((data.rules||{})[event]||0);
-    let amount = unit * times;
+      const tdCat = document.createElement("td");
+      tdCat.textContent = r.cat || "";
+      tr.appendChild(tdCat);
 
-    if(el("useCustomAmt").checked){
-      amount = Math.max(0, Number(el("customAmt").value||0));
+      const tdEvent = document.createElement("td");
+      tdEvent.textContent = r.event || "";
+      tr.appendChild(tdEvent);
+
+      const tdAmt = document.createElement("td");
+      tdAmt.className = "right";
+      tdAmt.textContent = String(Number(r.amount)||0);
+      tr.appendChild(tdAmt);
+
+      tbody.appendChild(tr);
     }
-
-    const rewardImg = await pickRewardImage();
-
-    if(!data.records[pickedDate]) data.records[pickedDate] = [];
-    data.records[pickedDate].push({ cat, event, times, amount, rewardImg, ts: Date.now() });
-
-    saveData(data);
-    renderDay();
-    renderCalendar();
-  });
-
-  // ✅ 一鍵清除今天裝飾
-  el("clearDecos").addEventListener("click", ()=>{
-    if(confirm("確定清除今天日期格子的全部裝飾？")){
-      const decos = loadDecos();
-      delete decos[pickedDate];
-      saveDecos(decos);
-      renderCalendar();
-      alert("已清除今天裝飾！");
-    }
-  });
-
-  el("clearDay").addEventListener("click", ()=>{
-    if(confirm("確定要清空今天全部紀錄？")){
-      delete data.records[pickedDate];
-      saveData(data);
-      renderDay();
-      renderCalendar();
-    }
-  });
-
-  el("saveRule").addEventListener("click", ()=>{
-    const e = el("editEvent").value;
-    const amt = Math.max(0, Number(el("editAmount").value||0));
-    if(!data.rules) data.rules = {};
-    data.rules[e] = amt;
-    saveData(data);
-    syncAmt();
-    alert("已儲存金額！");
-  });
-
-  el("addEvent").addEventListener("click", ()=>{
-    const name = prompt("輸入新事件名稱：");
-    if(!name) return;
-    const k = name.trim();
-    if(!k) return;
-    if(!data.rules) data.rules = {};
-    if(Object.prototype.hasOwnProperty.call(data.rules, k)){
-      alert("事件已存在！");
-      return;
-    }
-    data.rules[k] = 0;
-    saveData(data);
-    fillPanel();
-    alert("已新增事件（金額先設 0）");
-  });
-
-  el("prev").addEventListener("click", ()=>{
-    viewM -= 1;
-    if(viewM<0){ viewM=11; viewY-=1; }
-    renderCalendar();
-  });
-  el("next").addEventListener("click", ()=>{
-    viewM += 1;
-    if(viewM>11){ viewM=0; viewY+=1; }
-    renderCalendar();
-  });
-
-  el("overlay").addEventListener("click", closeDay);
-  el("close").addEventListener("click", closeDay);
-
-  function renderAssetTray(){
-    const assets = loadAssets();
-    el("assetTray").innerHTML = assets.map((src)=>`
-      <img class="assetItem" draggable="true" src="${src}" alt="asset">
-    `).join("");
-    document.querySelectorAll(".assetItem").forEach(img=>{
-      img.addEventListener("dragstart", (e)=>{
-        e.dataTransfer.setData("text/plain", img.src);
-      });
-    });
   }
 
-  el("addAssets").onclick = ()=> el("assetPicker").click();
-  el("assetPicker").onchange = async (e)=>{
-    const files = Array.from(e.target.files || []);
-    if(!files.length) return;
+  // ====== actions ======
+  el("prev").onclick = ()=>{ viewM--; if(viewM<0){viewM=11; viewY--;} render(); };
+  el("next").onclick = ()=>{ viewM++; if(viewM>11){viewM=0; viewY++;} render(); };
+  el("close").onclick = closeDay;
+  el("overlay").onclick = closeDay;
 
-    const assets = loadAssets();
-    for(const f of files){
-      const dataUrl = await new Promise((res)=>{
-        const r = new FileReader();
-        r.onload = ()=>res(String(r.result));
-        r.readAsDataURL(f);
-      });
-      assets.push(dataUrl);
-    }
-    saveAssets(assets);
-    renderAssetTray();
-    el("assetPicker").value = "";
+  el("times").oninput = syncAmt;
+  el("event").onchange = syncAmt;
+  el("useCustomAmt").onchange = syncAmt;
+
+  el("add").onclick = async ()=>{
+    const cat = el("cat").value;
+    const ev  = el("event").value;
+    const t   = Math.max(1, Number(el("times").value||1));
+
+    const useCustom = el("useCustomAmt").checked;
+    const customAmt = Number(el("customAmt").value||0);
+
+    const base = Number(data.rules?.[ev] || 0);
+    const amount = useCustom ? customAmt : (base * t);
+
+    const reward = await pickRewardImage();
+
+    const rec = {
+      cat, event: ev, times: t,
+      amount: Number(amount)||0,
+      rewardImg: reward || "",
+      ts: Date.now()
+    };
+
+    if(!data.records[pickedDate]) data.records[pickedDate] = [];
+    data.records[pickedDate].push(rec);
+
+    // 當天最大金額那筆 → 代表貼紙（你之前的規則）
+    saveData(data);
+    render();
+    renderDay();
   };
 
-  el("clearAssets").onclick = ()=>{
-    if(confirm("確定清空貼紙庫？（不會刪你已貼到日期上的裝飾）")){
-      saveAssets([]);
-      renderAssetTray();
-    }
+  el("clearDay").onclick = ()=>{
+    if(!confirm("要清空今天所有存錢紀錄嗎？")) return;
+    delete data.records[pickedDate];
+    saveData(data);
+    render();
+    renderDay();
   };
 
+  el("clearDecos").onclick = ()=>{
+    const decos = loadDecos();
+    delete decos[pickedDate];
+    saveDecos(decos);
+    render();
+    renderDay();
+  };
+
+  el("saveRule").onclick = ()=>{
+    const ev = el("editEvent").value;
+    const amt = Number(el("editAmount").value||0);
+    data.rules[ev] = Math.max(0, amt);
+    saveData(data);
+    fillPanel();
+  };
+
+  el("addEvent").onclick = ()=>{
+    const name = prompt("新增事件名稱（例：打卡/下單/看到推活照…）");
+    if(!name) return;
+    if(data.rules[name] != null){
+      alert("這個事件已存在");
+      return;
+    }
+    data.rules[name] = 0;
+    saveData(data);
+    fillPanel();
+  };
+
+  // init
   renderDow();
-  renderCalendar();
-  renderAssetTray();
-
-  window.addEventListener("focus", async ()=>{
-    data = loadData();
-    await applyBackground("planner");
-    renderCalendar();
-  });
+  render();
 </script>
 </body>
 </html>
-
-
