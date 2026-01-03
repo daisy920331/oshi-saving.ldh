@@ -13,32 +13,48 @@
   <link rel="stylesheet" href="assets/app.css" />
 
   <style>
- header h1{
-  text-align:center;
-  width:100%;
-  font-family: "Iansui", system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
-  letter-spacing:.5px;
-  margin:14px 0 6px;
-
-  font-size:clamp(36px, 6vw, 52px);
-   text-shadow: 0 2px 0 rgba(255,255,255,.6);
-
+header{
+  position: relative;
+  padding: 14px 16px 6px;
 }
 
-    header .sub{justify-content:center}
+/* 標題置中 */
+header h1{
+  text-align:center;
+  width:100%;
+}
+
+/* 「設定」固定在右上角，水平顯示 */
+header .sub{
+  position: absolute;
+  right: 16px;
+  top: 18px;
+  display: block;
+}
+
+header .sub a{
+  writing-mode: horizontal-tb; /* 強制水平 */
+  text-orientation: mixed;
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+  font-size: 14px;
+}
 
     .home-main{max-width:980px;margin:0 auto;padding:26px 16px 40px;}
 
-    .home-actions{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:16px;
-      width:100%;
-      margin-top:18px;
-    }
-    @media (min-width:860px){
-      .home-actions{grid-template-columns: 1fr 1fr 1fr;}
-    }
+.home-actions{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); 
+  gap:16px;
+  width:100%;
+  margin-top:18px;
+}
+
+@media (max-width:860px){
+  .home-actions{grid-template-columns: 1fr;}
+}
+
     .home-actions .btn.primary{
       height:160px;
       padding:22px;
@@ -69,7 +85,7 @@
 
 <header>
   <h1 id="siteName">LDH追星存錢手帳</h1>
-  <div class="sub"><a href="settings.html">設定</div>
+  <div class="sub"><a href="settings.html">設定</a></div>
 </header>
 
 <main class="home-main">
