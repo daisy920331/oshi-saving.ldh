@@ -7,31 +7,88 @@
   <link rel="stylesheet" href="assets/app.css"/>
   <style>
     .wrap{max-width:920px;margin:0 auto;padding:20px 16px 44px;}
-    .paper{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.92);box-shadow:0 18px 34px rgba(0,0,0,.10), 0 2px 0 rgba(0,0,0,.03);padding:18px;position:relative;overflow:hidden;}
-    .paper::after{content:"";position:absolute;top:-10px;right:18px;width:110px;height:34px;background:rgba(180,150,90,.25);border:1px solid rgba(180,150,90,.30);border-radius:10px;transform:rotate(7deg);box-shadow:0 10px 18px rgba(0,0,0,.10);-webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 12%,rgba(0,0,0,1) 88%,rgba(0,0,0,0) 100%);mask-image:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 12%,rgba(0,0,0,1) 88%,rgba(0,0,0,0) 100%);opacity:.95;pointer-events:none;}
+    .paper{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:rgba(255,255,255,.92);
+      box-shadow:0 18px 34px rgba(0,0,0,.10), 0 2px 0 rgba(0,0,0,.03);
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .paper::after{
+      content:"";
+      position:absolute; top:-10px; right:18px;
+      width:110px; height:34px;
+      background:rgba(180,150,90,.25);
+      border:1px solid rgba(180,150,90,.30);
+      border-radius:10px;
+      transform:rotate(7deg);
+      box-shadow:0 10px 18px rgba(0,0,0,.10);
+      -webkit-mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      mask-image: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0) 100%);
+      opacity:.95;
+      pointer-events:none;
+    }
     h1{margin:0 0 10px;font-size:20px;}
     .hint{color:var(--muted);font-size:12px;margin-top:6px;}
     .grid{display:grid;grid-template-columns:1fr;gap:14px;}
-    @media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr;}}
+    @media(min-width:900px){.grid{grid-template-columns: 1.2fr .8fr;}}
     .card2{border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;}
     .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
     .catList{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
     .catItem{border:1px solid var(--line);border-radius:16px;background:rgba(250,249,246,.92);padding:12px;}
     .catHead{display:flex;justify-content:space-between;gap:10px;align-items:center;}
     .mini{font-size:12px;color:var(--muted);}
-    .previewTag{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid transparent;font-weight:900;font-size:12px;margin-top:10px;width:fit-content;}
+    .previewTag{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;border:1px solid transparent;
+      font-weight:900;font-size:12px;
+      margin-top:10px;
+      width:fit-content;
+    }
     .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+    .danger{color:#b42318;}
 
-    .poolBox{border:1px dashed rgba(120,120,120,.35);border-radius:16px;padding:12px;background:rgba(250,249,246,.7);margin-top:12px;}
-    .tabRow{display:flex;gap:8px;flex-wrap:wrap;}
-    .tabBtn{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;font-weight:900;cursor:pointer;}
+    /* 候選池 UI */
+    .poolBox{border:1px dashed rgba(120,120,120,.35); border-radius:16px; padding:12px; background:rgba(250,249,246,.7); margin-top:12px;}
+    .tabRow{display:flex; gap:8px; flex-wrap:wrap;}
+    .tabBtn{
+      padding:8px 12px; border-radius:999px; border:1px solid var(--line);
+      background:#fff; font-weight:900; cursor:pointer;
+    }
     .tabBtn.on{background:rgba(180,150,90,.16);}
-    .poolList{max-height:260px;overflow:auto;margin-top:10px;display:flex;flex-direction:column;gap:6px;}
-    .poolItem{display:flex;align-items:center;gap:10px;border:1px solid rgba(0,0,0,.06);background:#fff;border-radius:14px;padding:8px 10px;}
+    .poolList{max-height:260px; overflow:auto; margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+    .poolItem{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid rgba(0,0,0,.06);
+      background:#fff; border-radius:14px; padding:8px 10px;
+    }
     .poolItem small{color:var(--muted);}
-    .poolActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center;justify-content:space-between;}
+    .poolActions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; justify-content:space-between;}
+
     .modePill{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;}
-    .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-weight:900;font-size:12px;}
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      border:1px solid var(--line);background:#fff;border-radius:999px;
+      padding:6px 10px;font-weight:900;font-size:12px;
+    }
+
+    /* 背景庫列表 */
+    .bgLibItem{
+      display:flex;align-items:center;gap:10px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      padding:8px;
+    }
+    .bgThumb{
+      width:44px;height:44px;
+      object-fit:cover;
+      border-radius:10px;
+      border:1px solid rgba(0,0,0,.08);
+      flex:0 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -46,6 +103,7 @@
   <div class="paper">
     <div class="grid">
 
+      <!-- 左：名稱＋對象 -->
       <div class="card2">
         <h2 style="margin:0 0 10px;font-size:15px;">① 手帳名稱</h2>
         <label>你的名字（可不填）</label>
@@ -69,8 +127,7 @@
             <button class="tabBtn" id="tabPeople">個人</button>
           </div>
 
-          <!-- 顯示方式切換 -->
-          <div class="modePill" id="modeWrap">
+          <div class="modePill">
             <label class="pill" id="groupModePill">
               團體顯示：
               <select id="groupNameMode">
@@ -111,23 +168,28 @@
         <div class="hint">顏色會套用到：月曆標籤、事件頁膠帶與標籤。</div>
       </div>
 
+      <!-- 右：背景庫＋完成 -->
       <div class="card2">
-       <h2 style="margin:0 0 10px;font-size:15px;">③ 初始背景</h2>
+        <h2 style="margin:0 0 10px;font-size:15px;">③ 初始背景（背景庫）</h2>
 
-<label>選擇背景（含你上傳的背景庫）</label>
-<select id="bgSelect"></select>
+        <label>選擇背景（含你上傳的背景庫）</label>
+        <select id="bgSelect"></select>
 
-<label style="margin-top:10px;">上傳背景到素材庫（可一次選多張）</label>
-<input id="bgUpload" type="file" accept="image/*" multiple />
-<div class="hint">上傳後會留存在你的「背景庫」，除非你自行刪除才會消失。</div>
+        <label style="margin-top:10px;">上傳背景到素材庫（可一次選多張）</label>
+        <input id="bgUpload" type="file" accept="image/*" multiple />
+        <div class="hint">上傳後會留存在你的背景庫，除非你自行刪除才會消失。</div>
 
-<div id="bgLibrary" style="margin-top:10px;"></div>
+        <div id="bgLibrary" style="margin-top:10px;"></div>
+        <div class="hint">提示：圖片太大/太多可能塞滿瀏覽器容量，建議用壓縮小圖。</div>
 
         <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
+
+        <h2 style="margin:0 0 10px;font-size:15px;">完成</h2>
         <div class="btnRow">
           <button class="btn primary" id="save">✅ 儲存並開始使用</button>
           <button class="btn" id="reset">重設為預設值</button>
         </div>
+        <div class="hint">儲存後會回到首頁。</div>
       </div>
 
     </div>
@@ -136,8 +198,9 @@
 
 <script type="module">
   import {
-    DEFAULT_CATS, getBuiltInBackgrounds,
-    getConfig, saveConfig, applyBackground, getCatTheme
+    DEFAULT_CATS,
+    getConfig, saveConfig, applyBackground, getCatTheme,
+    getAllBackgroundOptions, addCustomBackgroundFiles, getCustomBackgrounds, deleteCustomBackground
   } from "./assets/app.js";
   import { PRESET_GROUPS, PRESET_PEOPLE } from "./assets/presets.js";
 
@@ -157,21 +220,16 @@
   el("ownerName").value = cfg.ownerName || "";
   el("siteTitle").value = cfg.siteTitle || "";
 
-  // 背景
-  const bgs = getBuiltInBackgrounds().filter(Boolean);
-  el("bgSelect").innerHTML = bgs.map(u=>`<option value="${u}">${u}</option>`).join("");
-  el("bgSelect").value = (cfg.backgroundUrl && bgs.includes(cfg.backgroundUrl)) ? cfg.backgroundUrl : (bgs[0] || "assets/backgrounds/default.jpg");
-
   // ===== 候選池 =====
   let poolMode = "groups"; // groups | people
 
   function getDisplayNameFromGroup(g){
-    const mode = el("groupNameMode").value; // full | short
+    const mode = el("groupNameMode").value;
     if(mode === "short" && g.short) return g.short;
     return g.full;
   }
   function getDisplayNameFromPerson(p){
-    const mode = el("peopleNameMode").value; // roman | kanji
+    const mode = el("peopleNameMode").value;
     if(mode === "kanji" && p.kanji) return p.kanji;
     return p.roman;
   }
@@ -181,13 +239,11 @@
     let list = [];
     if(poolMode === "groups"){
       list = PRESET_GROUPS.map(g=>({
-        key: g.full, // 穩定 key（避免切換顯示方式造成勾選混亂）
         text: getDisplayNameFromGroup(g),
         meta: g.short ? `可用簡稱：${g.short}` : "團體",
       }));
     }else{
       list = PRESET_PEOPLE.map(p=>({
-        key: p.roman + (p.kanji ? `|${p.kanji}` : ""),
         text: getDisplayNameFromPerson(p),
         meta: p.kanji ? `可切換：${p.roman} / ${p.kanji}` : "個人",
       }));
@@ -200,7 +256,7 @@
     const list = poolItems();
     el("poolList").innerHTML = list.map(x=>`
       <label class="poolItem">
-        <input type="checkbox" data-key="${escapeHtml(x.key)}" data-text="${escapeHtml(x.text)}">
+        <input type="checkbox" data-text="${escapeHtml(x.text)}">
         <div style="display:flex;flex-direction:column;gap:2px;">
           <b>${escapeHtml(x.text)}</b>
           <small>${escapeHtml(x.meta)}</small>
@@ -222,11 +278,13 @@
   function setMode(mode){
     poolMode = mode;
     if(mode === "groups"){
-      el("tabGroups").classList.add("on"); el("tabPeople").classList.remove("on");
+      el("tabGroups").classList.add("on");
+      el("tabPeople").classList.remove("on");
       el("groupModePill").style.display = "";
       el("peopleModePill").style.display = "none";
     }else{
-      el("tabPeople").classList.add("on"); el("tabGroups").classList.remove("on");
+      el("tabPeople").classList.add("on");
+      el("tabGroups").classList.remove("on");
       el("groupModePill").style.display = "none";
       el("peopleModePill").style.display = "";
     }
@@ -262,11 +320,12 @@
       cfg.cats.push(name);
       added += 1;
     }
+
     renderCats();
     alert(added ? `已加入 ${added} 個對象！` : "選到的對象都已經存在了～");
   };
 
-  // ===== 已選對象＋顏色 =====
+  // ===== 已選列表＋顏色 =====
   function renderCats(){
     const list = el("catList");
     list.innerHTML = "";
@@ -279,7 +338,7 @@
       div.innerHTML = `
         <div class="catHead">
           <b>${escapeHtml(name)}</b>
-          <button class="btn" data-del="${idx}"><span style="color:#b42318">刪除</span></button>
+          <button class="btn" data-del="${idx}"><span class="danger">刪除</span></button>
         </div>
 
         <div class="row2" style="margin-top:10px;">
@@ -313,7 +372,7 @@
         const i = Number(btn.getAttribute("data-del"));
         const name = cfg.cats[i];
         if(!confirm(`確定刪除「${name}」？`)) return;
-        cfg.cats.splice(i,1);
+        cfg.cats.splice(i, 1);
         delete cfg.themeMap[name];
         renderCats();
       };
@@ -331,35 +390,110 @@
     });
   }
 
-  // 手動新增
   el("addCat").onclick = ()=>{
     const v = (el("newCat").value || "").trim();
     if(!v) return;
-    if(cfg.cats.includes(v)) return alert("這個對象已存在！");
+    if(cfg.cats.includes(v)){
+      alert("這個對象已存在！");
+      return;
+    }
     cfg.cats.push(v);
     el("newCat").value = "";
     renderCats();
   };
 
-  // 背景
-  el("bgUpload").onchange = async (e)=>{
-    const f = (e.target.files || [])[0];
-    if(!f) return;
-    const dataUrl = await new Promise(res=>{
-      const r = new FileReader();
-      r.onload = ()=>res(String(r.result));
-      r.readAsDataURL(f);
+  // ===== 背景庫 =====
+  function renderBgSelect(){
+    const opts = getAllBackgroundOptions();
+    el("bgSelect").innerHTML = opts.map(o => {
+      const v = escapeHtml(o.value);
+      return `<option value="${v}">${escapeHtml(o.label)}</option>`;
+    }).join("");
+
+    if(cfg.backgroundUrl){
+      el("bgSelect").value = cfg.backgroundUrl;
+    }else{
+      el("bgSelect").value = (opts[0]?.value) || "";
+    }
+  }
+
+  function renderBgLibrary(){
+    const list = getCustomBackgrounds();
+    const box = el("bgLibrary");
+
+    if(!list.length){
+      box.innerHTML = `<div class="hint">（背景庫目前還沒有圖片）</div>`;
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="hint">背景庫（點刪除才會移除）：</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+        ${list.map(item => `
+          <div class="bgLibItem">
+            <img class="bgThumb" src="${item.dataUrl}" alt="">
+            <div style="flex:1;min-width:0;">
+              <b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.name)}</b>
+              <small class="mini">已上傳</small>
+            </div>
+            <button class="btn" data-delbg="${item.id}"><span class="danger">刪除</span></button>
+          </div>
+        `).join("")}
+      </div>
+    `;
+
+    box.querySelectorAll("[data-delbg]").forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.getAttribute("data-delbg");
+        if(!confirm("確定從背景庫刪除這張背景？")) return;
+
+        const before = getCustomBackgrounds();
+        const deleting = before.find(x=>x.id===id);
+
+        deleteCustomBackground(id);
+
+        if(deleting && cfg.backgroundUrl === deleting.dataUrl){
+          cfg.backgroundUrl = "";
+          saveConfig(cfg);
+        }
+
+        renderBgSelect();
+        renderBgLibrary();
+        await applyBackground("planner");
+      };
     });
-    cfg.backgroundUrl = dataUrl;
-    await applyBackground("planner");
-    alert("已上傳背景！記得按『儲存並開始使用』");
-  };
+  }
+
+  // init 背景
+  renderBgSelect();
+  renderBgLibrary();
+
   el("bgSelect").onchange = async ()=>{
     cfg.backgroundUrl = el("bgSelect").value;
+    saveConfig(cfg);
     await applyBackground("planner");
   };
 
-  // 儲存
+  el("bgUpload").onchange = async (e)=>{
+    const files = e.target.files;
+    if(!files || !files.length) return;
+
+    await addCustomBackgroundFiles(files);
+
+    const latest = getCustomBackgrounds().slice(-1)[0];
+    if(latest){
+      cfg.backgroundUrl = latest.dataUrl;
+      saveConfig(cfg);
+    }
+
+    e.target.value = "";
+    renderBgSelect();
+    renderBgLibrary();
+    await applyBackground("planner");
+    alert("已加入背景庫！可以在下拉選單切換。");
+  };
+
+  // ===== 儲存/重設 =====
   el("save").onclick = ()=>{
     cfg.ownerName = (el("ownerName").value || "").trim();
     cfg.siteTitle = (el("siteTitle").value || "").trim();
@@ -368,20 +502,21 @@
     location.href = "index.html";
   };
 
-  // 重設
   el("reset").onclick = async ()=>{
-    if(!confirm("確定重設為預設值？")) return;
+    if(!confirm("確定重設為預設值？（不會刪除背景庫）")) return;
     cfg.setupDone = false;
     cfg.ownerName = "";
     cfg.siteTitle = "";
     cfg.cats = DEFAULT_CATS.slice();
     cfg.themeMap = {};
-    cfg.backgroundUrl = "assets/backgrounds/default.jpg";
+    cfg.backgroundUrl = "";
     renderCats();
+    renderBgSelect();
+    renderBgLibrary();
     await applyBackground("planner");
     el("ownerName").value = "";
     el("siteTitle").value = "";
-    el("bgSelect").value = "assets/backgrounds/default.jpg";
+    el("poolSearch").value = "";
     el("bgUpload").value = "";
   };
 
@@ -392,6 +527,7 @@
     return "";
   }
   function expand3(h){ return "#" + h[1]+h[1]+h[2]+h[2]+h[3]+h[3]; }
+
   function escapeHtml(s){
     return String(s||"")
       .replaceAll("&","&amp;")
