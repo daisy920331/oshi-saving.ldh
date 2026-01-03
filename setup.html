@@ -112,13 +112,16 @@
       </div>
 
       <div class="card2">
-        <h2 style="margin:0 0 10px;font-size:15px;">③ 初始背景</h2>
-        <label>選擇背景</label>
-        <select id="bgSelect"></select>
+       <h2 style="margin:0 0 10px;font-size:15px;">③ 初始背景</h2>
 
-        <label style="margin-top:10px;">或上傳自己的背景</label>
-        <input id="bgUpload" type="file" accept="image/*"/>
-        <div class="hint">上傳會存進瀏覽器（localStorage）。清除瀏覽資料會消失。</div>
+<label>選擇背景（含你上傳的背景庫）</label>
+<select id="bgSelect"></select>
+
+<label style="margin-top:10px;">上傳背景到素材庫（可一次選多張）</label>
+<input id="bgUpload" type="file" accept="image/*" multiple />
+<div class="hint">上傳後會留存在你的「背景庫」，除非你自行刪除才會消失。</div>
+
+<div id="bgLibrary" style="margin-top:10px;"></div>
 
         <hr style="border:none;border-top:1px solid var(--line);margin:14px 0;">
         <div class="btnRow">
